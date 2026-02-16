@@ -1,0 +1,33 @@
+# Large Media
+videos/
+
+# Dependency
+node_modules/
+
+# Sensitive Configuration (NEVER PUSH TO GITHUB)
+serviceAccountKey.json
+notifier_config.json
+.env
+
+# Scripts and tools
+ejecutar_notificaciones.bat
+
+# Temporary and local data
+temp_excel_extract/
+*.xlsx
+*.xls
+*.pdf
+!RADICADOS A MIGRAR_SGC.xlsx
+
+# AI / Internal
+.gemini/
+.agent/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Notes and scripts not part of the final app
+partes de la pagina.txt
+comando borrar todo el listado.txt
+LISTA_JUZGADOS.txt

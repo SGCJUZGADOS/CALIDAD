@@ -1,0 +1,438 @@
+/* --- PREMIUM SIDEBAR DESIGN --- */
+
+:root {
+    --sidebar-bg: #1a237e;
+    /* Deep Royal Blue */
+    --sidebar-hover: rgba(255, 255, 255, 0.1);
+    --sidebar-accent: #ffd700;
+    /* Gold Accent */
+    --sidebar-transition: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-sidebar {
+    width: 420px;
+    background: linear-gradient(180deg, #1a237e 0%, #121858 100%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
+    transition: width 0.4s var(--sidebar-transition);
+    overflow: hidden;
+    position: relative;
+    z-index: 2500;
+}
+
+/* Sidebar Header Area */
+.sidebar-header {
+    padding: 30px 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-header h3 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 5px;
+    background: linear-gradient(to right, #fff, #ccc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.sidebar-header p {
+    font-size: 0.8rem;
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* Toggle Button - High Definition */
+.sidebar-toggle-btn {
+    position: absolute;
+    top: 25px;
+    right: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.sidebar-toggle-btn:hover {
+    background: var(--sidebar-accent);
+    color: #1a237e;
+    transform: rotate(90deg);
+}
+
+/* Menu Items Styling */
+.sidebar-menu {
+    list-style: none;
+    padding: 20px 10px;
+    flex-grow: 1;
+}
+
+.sidebar-menu li {
+    margin-bottom: 8px;
+}
+
+.sidebar-menu li a {
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+    color: rgba(255, 255, 255, 0.85);
+    /* Slightly brighter text */
+    text-decoration: none;
+    border-radius: 6px;
+    /* MORE RECTANGULAR */
+    transition: all 0.3s ease;
+    gap: 15px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    border-left: 4px solid transparent;
+    /* Placeholder for active state */
+}
+
+.sidebar-menu li a i {
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-menu li a:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    transform: translateX(8px);
+    /* Subtle slide effect */
+}
+
+.sidebar-menu li a:hover i {
+    transform: scale(1.2) rotate(-5deg);
+    color: var(--sidebar-accent);
+}
+
+.sidebar-menu li.active a {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-menu li.active a i {
+    color: var(--sidebar-accent);
+}
+
+/* Text visibility toggle */
+.sidebar-menu li a span {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* COLLAPSED STATE */
+.dashboard-sidebar.collapsed {
+    width: 85px;
+}
+
+.dashboard-sidebar.collapsed .sidebar-header h3,
+.dashboard-sidebar.collapsed .sidebar-header p,
+.dashboard-sidebar.collapsed .sidebar-menu li a span {
+    opacity: 0;
+    pointer-events: none;
+    display: none;
+}
+
+.dashboard-sidebar.collapsed .sidebar-toggle-btn {
+    right: 50%;
+    transform: translateX(50%);
+}
+
+.dashboard-sidebar.collapsed .sidebar-menu li a {
+    justify-content: center;
+    padding: 15px 0;
+}
+
+.dashboard-sidebar.collapsed .sidebar-menu li a i {
+    margin: 0;
+}
+
+/* --- DASHBOARD OVERLAY & CONTENT --- */
+.dashboard-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #f8fafc;
+    z-index: 2000;
+    display: flex;
+}
+
+.dashboard-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Evita que el contenido interno empuje la ventana */
+    padding: 50px;
+    background: #f8fafc;
+    transition: all 0.3s ease;
+    min-width: 0;
+    width: 100%;
+    /* Prevents overflow in flexbox */
+}
+
+.data-form-card,
+.data-table-card {
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+    margin-bottom: 40px;
+    transition: all 0.3s ease;
+}
+
+/* --- DASHBOARD HEADER REFINEMENT --- */
+.dash-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 50px;
+    background: white;
+    color: #333;
+    /* Fix invisible white text */
+    border-bottom: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    min-height: 160px;
+    /* Increased to accommodate larger logos */
+    transition: all 0.4s ease;
+}
+
+#welcomeMsg {
+    color: #333 !important;
+    /* Ensure visibility */
+}
+
+/* Polished Dashboard Credit */
+.dash-header .header-credit {
+    background: transparent !important;
+    color: #666 !important;
+    border: none !important;
+    padding: 0 !important;
+    margin-bottom: 5px !important;
+    width: auto !important;
+    font-weight: normal !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    display: block !important;
+}
+
+.header-logo-group {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    margin: 0 auto;
+    /* CENTER LOGOS */
+}
+
+.header-logo-group img {
+    height: 80px;
+    /* LARGER LOGOS */
+    width: auto;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.08));
+    transition: transform 0.3s ease;
+}
+
+.header-logo-group h2 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-left: 15px;
+}
+
+.header-right {
+    position: absolute;
+    right: 50px;
+}
+
+/* THEMED HEADERS */
+.header-tutelas {
+    border-bottom: 4px solid #004884;
+    box-shadow: 0 10px 30px rgba(0, 72, 132, 0.1);
+}
+
+.header-demandas {
+    border-bottom: 4px solid #28a745;
+    box-shadow: 0 10px 30px rgba(40, 167, 69, 0.1);
+}
+
+/* THEMED INPUT FIELDS */
+.theme-tutelas input:focus,
+.theme-tutelas select:focus,
+.theme-tutelas textarea:focus {
+    border-color: #004884;
+    box-shadow: 0 0 0 4px rgba(0, 72, 132, 0.15), 0 10px 15px -3px rgba(0, 72, 132, 0.1);
+}
+
+.theme-demandas input:focus,
+.theme-demandas select:focus,
+.theme-demandas textarea:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.15), 0 10px 15px -3px rgba(40, 167, 69, 0.1);
+}
+
+/* TABLE ROW THEMES */
+.table tr.row-tutelas:hover {
+    background-color: rgba(0, 180, 219, 0.05);
+}
+
+.table tr.row-demandas:hover {
+    background-color: rgba(40, 167, 69, 0.05);
+}
+
+.table tr.row-tutelas td:first-child {
+    border-left: 5px solid #00b4db;
+}
+
+.table tr.row-demandas td:first-child {
+    border-left: 5px solid #28a745;
+}
+
+/* Module-specific Highlight Colors - HIGH CONTRAST & RECTANGULAR */
+#nav-tutelas.active a {
+    background: #87ceeb;
+    /* SKY BLUE / PASTEL */
+    border-left: 8px solid #00b4db;
+    color: #1a237e;
+    /* Dark text for contrast */
+    box-shadow: 0 4px 15px rgba(135, 206, 235, 0.4);
+    font-weight: 800;
+}
+
+#nav-tutelas.active a i {
+    color: #1a237e;
+}
+
+#nav-demandas.active a {
+    background: #a5d6a7;
+    /* PASTEL GREEN */
+    border-left: 8px solid #28a745;
+    color: #1b5e20;
+    /* Dark green text */
+    box-shadow: 0 4px 15px rgba(165, 214, 167, 0.4);
+    font-weight: 800;
+}
+
+#nav-demandas.active a i {
+    color: #1b5e20;
+}
+
+/* ... (rest of reset/body omitted intentionally, assumed unchanged unless specific selector targeted) ... */
+html,
+body {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Hover effects for specific modules when NOT active */
+#nav-tutelas:not(.active) a:hover {
+    background: rgba(135, 206, 235, 0.2);
+    border-left: 4px solid #87ceeb;
+}
+
+#nav-demandas:not(.active) a:hover {
+    background: rgba(165, 214, 167, 0.2);
+    border-left: 4px solid #a5d6a7;
+}
+
+.header-logo-group {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.header-logo-group img {
+    height: 115px;
+    /* Increased from 80px (+40% approx) */
+    width: auto;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.05));
+    transition: transform 0.3s ease;
+}
+
+.header-logo-group img:hover {
+    transform: translateY(-3px);
+}
+
+.header-divider {
+    border-left: 2px solid rgba(0, 0, 0, 0.1);
+    height: 40px;
+    margin: 0 10px;
+}
+
+/* Premium Login Button */
+.btn-premium-login {
+    background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+    color: white;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 20px rgba(13, 71, 161, 0.3);
+}
+
+.btn-premium-login:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px rgba(13, 71, 161, 0.4);
+    background: linear-gradient(135deg, #0d47a1 0%, #1a237e 100%);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dashboard-sidebar {
+        position: fixed;
+        left: -340px;
+        height: 100%;
+        width: 330px;
+        box-shadow: 20px 0 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .dashboard-sidebar.open {
+        left: 0;
+    }
+}
+
+/* RESPONSIVE MOBILE SIDEBAR */
+@media (max-width: 768px) {
+    .dashboard-sidebar {
+        position: fixed;
+        left: -290px;
+        height: 100%;
+        width: 280px;
+        box-shadow: 20px 0 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .dashboard-sidebar.open {
+        left: 0;
+    }
+
+    .dashboard-sidebar.open .sidebar-menu li a span {
+        display: inline-block;
+        opacity: 1;
+    }
+}

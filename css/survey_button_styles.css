@@ -1,0 +1,38 @@
+/* Botón de Encuesta Llamativo */
+.btn-survey {
+    display: inline-block;
+    background: linear-gradient(45deg, #FFD700, #DAA520);
+    /* Dorado Brillante */
+    color: #000;
+    padding: 1.2rem 2.5rem;
+    font-size: 1.3rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(218, 165, 32, 0.6);
+    transition: all 0.3s ease;
+    border: 3px solid #fff;
+    margin-top: 20px;
+    animation: pulse 2s infinite;
+}
+
+.btn-survey:hover {
+    transform: scale(1.05) translateY(-3px);
+    box-shadow: 0 6px 20px rgba(218, 165, 32, 0.8);
+    background: linear-gradient(45deg, #DAA520, #FFD700);
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 15px rgba(255, 215, 0, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+    }
+}

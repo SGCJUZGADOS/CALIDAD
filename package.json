@@ -1,0 +1,17 @@
+{
+  "name": "sgc_envigado",
+  "version": "1.0.0",
+  "description": "",
+  "main": "acta_logic_reference.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "firebase-admin": "^13.6.1",
+    "nodemailer": "^8.0.1"
+  }
+}

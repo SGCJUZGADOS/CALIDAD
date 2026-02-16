@@ -1,0 +1,54 @@
+/* ... MANTENIENDO TODO EL CODIGO ANTERIOR ... */
+/* AGREGAR ESTO AL FINAL DEL ARCHIVO SI NO EXISTE O REEMPLAZAR LA SECCION DE MODAL */
+
+/* Modal Styles GENERICO (Para imagen) */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    padding-top: 20px;
+    /* Reducido para dar mas espacio */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* Evitar scroll doble */
+    background-color: rgba(0, 0, 0, 0.9);
+}
+
+/* REGLA ESPECIFICA PARA LA IMAGEN (LIGHTBOX) */
+#imageModal .modal-content {
+    margin: auto;
+    display: block;
+    /* Forzar tamaño máximo basado en la ventana */
+    width: auto;
+    height: auto;
+    max-width: 95vw !important;
+    /* 95% del ancho de pantalla */
+    max-height: 95vh !important;
+    /* 95% del alto de pantalla */
+    object-fit: contain;
+    /* Asegura que la imagen se vea completa sin deformarse */
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+    animation: zoom 0.4s;
+    background-color: transparent;
+}
+
+/* Modal Content Login (SEPARADO Y ESPECIFICO) */
+.modal-content.login-content {
+    background-color: #343a40;
+    margin: 10% auto;
+    padding: 30px;
+    border: 1px solid #6c757d;
+    width: 90%;
+    max-width: 380px !important;
+    /* Forzar pequeño SOLO para login */
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    position: relative;
+    text-align: center;
+}
+
+/* ... resto de estilos ... */
