@@ -2206,7 +2206,7 @@ window.openVideo = function () {
     if (modal && player) {
         // Embed URL con el ID proporcionado por el usuario
         player.src = "https://www.youtube.com/embed/6AmXIy-SHQA?autoplay=1";
-        modal.style.display = "block";
+        modal.style.display = "flex";
     }
 }
 
