@@ -61,7 +61,14 @@ const initialJuzgadosData = [
 // MODULE SWITCHING LOGIC
 window.switchModule = function (moduleName) {
     // 1. UPDATE SIDEBAR ACTIVE STATE
-    document.querySelectorAll('.sidebar-menu li').forEach(li => li.classList.remove('active'));
+    document.querySelectorAll('.sidebar-menu li').forEach(li => {
+        // No desmarcar el padre si estamos en un hijo
+        if (moduleName === 'estadisticas_tutelas' && li.id === 'nav-tutelas') {
+            li.classList.add('active');
+        } else {
+            li.classList.remove('active');
+        }
+    });
 
     // --- AUTO-EXPAND SIDEBAR ON CLICK ---
     const sidebar = document.querySelector('.dashboard-sidebar');
@@ -130,13 +137,23 @@ window.switchModule = function (moduleName) {
         const navItem = document.getElementById('nav-estadisticas-tutelas');
         if (navItem) navItem.classList.add('active');
 
-        if (headerTitle) headerTitle.innerHTML = '<i class="fas fa-table"></i> MATRIZ - ENTRADA TUTELAS';
+        if (headerTitle) headerTitle.innerHTML = '<i class="fas fa-table"></i> Estadísticas tutelas';
 
         const matrixContainer = document.getElementById('estadisticas-tutelas-section');
         if (matrixContainer) {
             matrixContainer.style.display = 'block';
-            if (typeof window.updateMatrixStatistics === 'function') {
-                window.updateMatrixStatistics();
+
+            // SI venimos de otro módulo (demandas o gestión usuarios), forzar recarga de tutelas
+            if (currentCollection !== 'tutelas') {
+                currentCollection = 'tutelas';
+                if (typeof window.setupRealtimeUpdates === 'function') {
+                    window.setupRealtimeUpdates();
+                }
+            } else {
+                // Si ya estamos en tutelas, solo refrescar matriz por si acaso
+                if (typeof window.updateMatrixStatistics === 'function') {
+                    window.updateMatrixStatistics();
+                }
             }
         }
         return;
@@ -843,7 +860,9 @@ window.enterDashboard = function () {
     if (dashboard) dashboard.style.display = "flex";
 
     if (welcomeMsg && currentUser) {
-        welcomeMsg.innerHTML = `<i class="fas fa-user-circle"></i> Hola, ${currentUser.username || 'Funcionario'}`;
+        // Priorizar el nombre del Juzgado sobre el nombre de usuario
+        const displayName = currentUser.juzgado || currentUser.username || 'Funcionario';
+        welcomeMsg.innerHTML = `<i class="fas fa-user-circle"></i> Hola, ${displayName}`;
     }
 
     // --- NEW: CSS ROLE CLASS FOR TARGETING ---
@@ -865,11 +884,61 @@ window.enterDashboard = function () {
         }
     }
 
+    // --- ACCESO A ESTADÍSTICAS RESTRINGIDO ---
+    const navEstadisticas = document.getElementById("nav-estadisticas");
+    const navEstadisticasTutelas = document.getElementById("nav-estadisticas-tutelas");
+
+    if (navEstadisticas) {
+        // Ocultar si es rol 'user' (Juzgado)
+        if (role === 'user') {
+            navEstadisticas.style.display = 'none';
+        } else {
+            navEstadisticas.style.display = 'block';
+        }
+    }
+
+    if (navEstadisticasTutelas) {
+        // Solo visible para Juzgado
+        if (role === 'user') {
+            navEstadisticasTutelas.style.display = 'block';
+        } else {
+            navEstadisticasTutelas.style.display = 'none';
+        }
+    }
+
     // Default view: Tutelas
     if (typeof window.switchModule === 'function') {
         window.switchModule('tutelas');
     }
 }
+
+// LOGIC FOR SUBMENUS
+window.toggleSubmenu = function (submenuId) {
+    const submenu = document.getElementById(submenuId);
+    const parentLi = submenu ? submenu.parentElement : null;
+
+    if (submenu && parentLi) {
+        const isOpen = submenu.classList.contains('open');
+
+        // Close other submenus if needed (optional)
+        // document.querySelectorAll('.sub-menu').forEach(s => s.classList.remove('open'));
+        // document.querySelectorAll('.has-submenu').forEach(l => l.classList.remove('open'));
+
+        if (isOpen) {
+            submenu.classList.remove('open');
+            parentLi.classList.remove('open');
+        } else {
+            submenu.classList.add('open');
+            parentLi.classList.add('open');
+
+            // Auto expand sidebar if collapsed
+            const sidebar = document.querySelector('.dashboard-sidebar');
+            if (sidebar && sidebar.classList.contains('collapsed')) {
+                toggleSidebar();
+            }
+        }
+    }
+};
 
 window.logout = function () {
     if (confirm("¿Seguro que desea cerrar sesión?")) {
@@ -1274,6 +1343,56 @@ window.updateMatrixStatistics = function () {
     });
     footerHtml += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center; background:#333; color:white;">${grandTotal}</td></tr>`;
     tableFoot.innerHTML = footerHtml;
+
+    // -------------------------------------------------------------
+    // 2. MATRIX SALIDA (Decision de Fondo)
+    const tableSalidaBody = document.getElementById('matrixSalidaTableBody');
+    const tableSalidaFoot = document.getElementById('matrixSalidaTableFoot');
+    if (!tableSalidaBody || !tableSalidaFoot) return;
+
+    tableSalidaBody.innerHTML = '';
+    tableSalidaFoot.innerHTML = '';
+
+    const decisiones = ["CONCEDE", "NIEGA", "DECLARA IMPROCEDENTE", "IMPEDIMENTO", "HECHO SUPERADO", "RECHAZA", "RECHAZA POR CONOCIMIENTO PREVIO", "RETIRO VOLUNTARIO", "OTRO"];
+    let matrixSalida = Array(derechos.length).fill(0).map(() => Array(decisiones.length).fill(0));
+
+    // Calculate Salida Stats
+    globalTerminos.forEach(item => {
+        const d = (item.derecho || "").toUpperCase().trim();
+        const deci = (item.decision || "").toUpperCase().trim();
+        const dIndex = derechos.indexOf(d);
+        const deciIndex = decisiones.indexOf(deci);
+
+        if (dIndex !== -1 && deciIndex !== -1) {
+            matrixSalida[dIndex][deciIndex]++;
+        }
+    });
+
+    // Render Salida Body
+    let salidaColTotals = Array(decisiones.length).fill(0);
+    let totalGeneralSalida = 0;
+
+    derechos.forEach((derecho, r) => {
+        let rowHtml = `<tr><td style="border: 1px solid #ddd; padding: 5px; white-space: nowrap;">${derecho}</td>`;
+        let rowTotal = 0;
+        decisiones.forEach((dec, c) => {
+            const val = matrixSalida[r][c];
+            rowHtml += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${val || '-'}</td>`;
+            rowTotal += val;
+            salidaColTotals[c] += val;
+        });
+        rowHtml += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-weight: bold; background: #f8f9fa;">${rowTotal}</td></tr>`;
+        totalGeneralSalida += rowTotal;
+        tableSalidaBody.innerHTML += rowHtml;
+    });
+
+    // Render Salida Foot
+    let footHtmlSalida = `<tr><td style="border: 1px solid #ddd; padding: 5px; font-weight: bold;">TOTAL</td>`;
+    salidaColTotals.forEach(val => {
+        footHtmlSalida += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-weight:bold;">${val}</td>`;
+    });
+    footHtmlSalida += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center; background: #333; color: white;">${totalGeneralSalida}</td></tr>`;
+    tableSalidaFoot.innerHTML = footHtmlSalida;
 }
 
 window.exportMatrixToExcel = function () {
@@ -1450,22 +1569,24 @@ window.setupRealtimeUpdates = function () {
                 showRecord = true;
             } else {
                 // Precise match required - con TRIM y manejo de nulidad
+                // Check multiple possible fields for juzgado mapping
                 const dataJuzgado = (data.juzgado || "").trim();
+                const dataJuzgadoDestino = (data.juzgadoDestino || "").trim();
                 const userJuzgado = (currentUser.juzgado || "").trim();
 
                 let isMatch = false;
 
                 // SPECIAL MATCH FOR JUZ01CMPL (Emergency Fuzzy Logic)
-                // This resolves the issue where records might have slightly different names in DB
                 if (currentUser.username === 'juz01cmpl') {
                     const normData = dataJuzgado.toLowerCase();
-                    if (normData.includes("primero civil municipal")) {
+                    const normDestino = dataJuzgadoDestino.toLowerCase();
+                    if (normData.includes("primero civil municipal") || normDestino.includes("primero civil municipal")) {
                         isMatch = true;
                     }
                 }
 
                 // STANDARD EXACT MATCH (Primary check)
-                if (dataJuzgado && dataJuzgado === userJuzgado) {
+                if ((dataJuzgado && dataJuzgado === userJuzgado) || (dataJuzgadoDestino && dataJuzgadoDestino === userJuzgado)) {
                     isMatch = true;
                 }
 
@@ -1477,6 +1598,14 @@ window.setupRealtimeUpdates = function () {
             }
         });
         filterAndRender(); // Render with current filter
+
+        // AUTO-UPDATE STATISTICS IF VISIBLE
+        if (typeof window.updateMatrixStatistics === 'function') {
+            const statsVisible = document.getElementById('estadisticas-tutelas-section')?.style.display === 'block';
+            if (statsVisible) {
+                window.updateMatrixStatistics();
+            }
+        }
     });
 }
 

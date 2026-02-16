@@ -131,6 +131,80 @@
     color: var(--sidebar-accent);
 }
 
+/* SUBMENU STYLES */
+.has-submenu {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.sub-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-out, background 0.3s ease;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+}
+
+.sub-menu.open {
+    max-height: 500px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+
+.sub-menu li {
+    margin-bottom: 2px !important;
+}
+
+.sub-menu li a {
+    padding: 10px 20px 10px 45px !important;
+    font-size: 0.85rem !important;
+    opacity: 0.8;
+    color: white !important;
+    /* Force white text in submenu */
+}
+
+.sub-menu li a:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+}
+
+.submenu-arrow {
+    margin-left: auto;
+    font-size: 0.7rem !important;
+    transition: transform 0.3s ease;
+    opacity: 0.5;
+}
+
+.open>a .submenu-arrow {
+    transform: rotate(180deg);
+    opacity: 1;
+}
+
+/* Collapsed Submenu Fix */
+.dashboard-sidebar.collapsed .sub-menu {
+    display: none !important;
+}
+
+.dashboard-sidebar.collapsed .submenu-arrow {
+    display: none !important;
+}
+
+/* Hover effects for specific modules when NOT active */
+#nav-tutelas:not(.active)>a:hover {
+    background: rgba(135, 206, 235, 0.2);
+    border-left: 4px solid #87ceeb;
+}
+
+#nav-demandas:not(.active)>a:hover {
+    background: rgba(165, 214, 167, 0.2);
+    border-left: 4px solid #a5d6a7;
+}
+
 /* Text visibility toggle */
 .sidebar-menu li a span {
     transition: opacity 0.3s ease, transform 0.3s ease;
@@ -211,14 +285,15 @@
     position: sticky;
     top: 0;
     z-index: 1000;
-    min-height: 160px;
-    /* Increased to accommodate larger logos */
+    min-height: 200px;
+    /* Incrementado para dar más aire al título */
     transition: all 0.4s ease;
 }
 
 #welcomeMsg {
-    color: #333 !important;
-    /* Ensure visibility */
+    color: #dc3545 !important;
+    /* Rojo solicitado por el usuario */
+    font-size: 1.1rem;
 }
 
 /* Polished Dashboard Credit */
@@ -227,7 +302,8 @@
     color: #666 !important;
     border: none !important;
     padding: 0 !important;
-    margin-bottom: 5px !important;
+    margin-bottom: 8px !important;
+    /* Más espacio respecto al saludo */
     width: auto !important;
     font-weight: normal !important;
     text-transform: none !important;
@@ -239,8 +315,8 @@
     display: flex;
     align-items: center;
     gap: 30px;
-    margin: 0 auto;
-    /* CENTER LOGOS */
+    margin: 60px auto 20px auto;
+    /* Espaciado extra arriba (otros dos enter) y abajo */
 }
 
 .header-logo-group img {
@@ -262,6 +338,8 @@
 .header-right {
     position: absolute;
     right: 50px;
+    top: 25px;
+    /* Subir el bloque de saludo para mayor separación */
 }
 
 /* THEMED HEADERS */
@@ -308,7 +386,7 @@
 }
 
 /* Module-specific Highlight Colors - HIGH CONTRAST & RECTANGULAR */
-#nav-tutelas.active a {
+#nav-tutelas.active>a {
     background: #87ceeb;
     /* SKY BLUE / PASTEL */
     border-left: 8px solid #00b4db;
@@ -318,11 +396,11 @@
     font-weight: 800;
 }
 
-#nav-tutelas.active a i {
+#nav-tutelas.active>a i {
     color: #1a237e;
 }
 
-#nav-demandas.active a {
+#nav-demandas.active>a {
     background: #a5d6a7;
     /* PASTEL GREEN */
     border-left: 8px solid #28a745;
@@ -332,7 +410,7 @@
     font-weight: 800;
 }
 
-#nav-demandas.active a i {
+#nav-demandas.active>a i {
     color: #1b5e20;
 }
 

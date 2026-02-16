@@ -358,10 +358,19 @@
                     </button>
                 </div>
                 <ul class="sidebar-menu">
-                    <li class="active" id="nav-tutelas">
-                        <a href="javascript:void(0)" onclick="switchModule('tutelas')">
+                    <li class="active has-submenu" id="nav-tutelas">
+                        <a href="javascript:void(0)"
+                            onclick="toggleSubmenu('submenu-tutelas'); switchModule('tutelas')">
                             <i class="fas fa-balance-scale-right"></i> <span>Seguimiento a Términos Tutelas</span>
+                            <i class="fas fa-chevron-down submenu-arrow"></i>
                         </a>
+                        <ul class="sub-menu" id="submenu-tutelas">
+                            <li id="nav-estadisticas-tutelas">
+                                <a href="javascript:void(0)" onclick="switchModule('estadisticas_tutelas')">
+                                    <i class="fas fa-table"></i> <span>Estadística Tutelas</span>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                     <li id="nav-demandas">
                         <a href="javascript:void(0)" onclick="switchModule('demandas')">
@@ -371,11 +380,6 @@
                     <li id="nav-estadisticas">
                         <a href="javascript:void(0)" onclick="switchModule('estadisticas')">
                             <i class="fas fa-chart-pie"></i> <span>Estadísticas</span>
-                        </a>
-                    </li>
-                    <li id="nav-estadisticas-tutelas">
-                        <a href="javascript:void(0)" onclick="switchModule('estadisticas_tutelas')">
-                            <i class="fas fa-table"></i> <span>Estadística Tutelas</span>
                         </a>
                     </li>
                     <li id="sidebarBtnUsers" style="display:none;">
@@ -585,9 +589,11 @@
 
                 <!-- NEW MATRIX STATISTICS SECTION -->
                 <div id="estadisticas-tutelas-section" style="display: none; padding: 20px;">
-                    <div class="card" style="padding: 20px;">
+                    <div class="card" style="padding: 20px; margin-bottom: 20px;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <h3 style="color: #004884; margin-bottom: 20px;">Matriz - Entrada Tutelas</h3>
+                            <h3
+                                style="color: #004884; margin-bottom: 20px; text-transform: uppercase; font-weight: 800;">
+                                ENTRADA TUTELAS</h3>
                             <button onclick="exportMatrixToExcel()" class="btn-primary"
                                 style="background:#28a745; border:none;">
                                 <i class="fas fa-file-excel"></i> Exportar
@@ -624,6 +630,48 @@
                                     <!-- Populated by JS -->
                                 </tbody>
                                 <tfoot id="matrixTableFoot" style="font-weight: bold; background-color: #e9ecef;">
+                                    <!-- Totals -->
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- SALIDA DE TUTELAS TABLE -->
+                    <div class="card" style="padding: 20px;">
+                        <h3 style="color: #004884; margin-bottom: 20px; text-transform: uppercase; font-weight: 800;">
+                            SALIDA DE TUTELAS</h3>
+                        <div style="overflow-x: auto; text-align: left;">
+                            <table class="table" style="border-collapse: collapse; width: auto; font-size: 0.85rem;">
+                                <thead>
+                                    <tr style="background-color: #f2f2f2;">
+                                        <th
+                                            style="border: 1px solid #ddd; padding: 5px; background: #e9ecef; white-space: nowrap;">
+                                            TIPOS PROCESOS</th>
+                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">CONCEDE
+                                        </th>
+                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">NIEGA</th>
+                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">DECLARA
+                                            IMPROCEDENTE</th>
+                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
+                                            IMPEDIMENTO</th>
+                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">HECHO
+                                            SUPERADO</th>
+                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">RECHAZA
+                                        </th>
+                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">RECHAZA
+                                            POR CONOCIMIENTO PREVIO</th>
+                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">RETIRO
+                                            VOLUNTARIO</th>
+                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">OTRO</th>
+                                        <th
+                                            style="border: 1px solid #ddd; padding: 5px; background: #333; color: white; text-align: center;">
+                                            TOTAL</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="matrixSalidaTableBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                                <tfoot id="matrixSalidaTableFoot" style="font-weight: bold; background-color: #e9ecef;">
                                     <!-- Totals -->
                                 </tfoot>
                             </table>
