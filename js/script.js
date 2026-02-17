@@ -108,6 +108,9 @@ window.switchModule = function (moduleName) {
     const usersContainer = document.getElementById('user-management-section');
     if (usersContainer) usersContainer.style.display = 'none';
 
+    const impSection = document.getElementById('impugnacion-section');
+    if (impSection) impSection.style.display = 'none';
+
     if (moduleName === 'users') {
         const navItem = document.getElementById('sidebarBtnUsers');
         if (navItem) navItem.classList.add('active');
@@ -153,6 +156,31 @@ window.switchModule = function (moduleName) {
                 // Si ya estamos en tutelas, solo refrescar matriz por si acaso
                 if (typeof window.updateMatrixStatistics === 'function') {
                     window.updateMatrixStatistics();
+                }
+            }
+        }
+        return;
+    }
+
+    if (moduleName === 'impugnacion') {
+        const navItem = document.getElementById('nav-impugnacion');
+        if (navItem) navItem.classList.add('active');
+
+        if (headerTitle) headerTitle.innerHTML = '<i class="fas fa-gavel"></i> IMPUGNACIÓN / ENVÍO CORTE';
+
+        const impContainer = document.getElementById('impugnacion-section');
+        if (impContainer) {
+            impContainer.style.display = 'block';
+
+            // Asegurar que estamos en tutelas
+            if (currentCollection !== 'tutelas') {
+                currentCollection = 'tutelas';
+                if (typeof window.setupRealtimeUpdates === 'function') {
+                    window.setupRealtimeUpdates();
+                }
+            } else {
+                if (typeof window.updateImpugnacionTables === 'function') {
+                    window.updateImpugnacionTables();
                 }
             }
         }
@@ -1606,6 +1634,14 @@ window.setupRealtimeUpdates = function () {
                 window.updateMatrixStatistics();
             }
         }
+
+        // AUTO-UPDATE IMPUGNACION TABLES IF VISIBLE
+        if (typeof window.updateImpugnacionTables === 'function') {
+            const impVisible = document.getElementById('impugnacion-section')?.style.display === 'block';
+            if (impVisible) {
+                window.updateImpugnacionTables();
+            }
+        }
     });
 }
 
@@ -1781,9 +1817,62 @@ window.exportToExcel = function () {
         }
     }
 
-    XLSX.utils.book_append_sheet(wb, ws, "Tutelas");
-    XLSX.writeFile(wb, `Reporte_Tutelas_${new Date().toISOString().slice(0, 10)}.xlsx`);
-}
+    XLSX.utils.book_append_sheet(wb, ws, "Tutelas Matriz");
+    XLSX.writeFile(wb, `Matriz_Tutelas_${new Date().toISOString().slice(0, 10)}.xlsx`);
+};
+
+// -------------------------------------------------------------
+// IMPUGNACION / ENVIO CORTE LOGIC
+// -------------------------------------------------------------
+window.updateImpugnacionTables = function () {
+    const tableSuperiorBody = document.getElementById('tableSuperiorBody');
+    const tableCorteBody = document.getElementById('tableCorteBody');
+    if (!tableSuperiorBody || !tableCorteBody) return;
+
+    tableSuperiorBody.innerHTML = '';
+    tableCorteBody.innerHTML = '';
+
+    const impugnados = globalTerminos.filter(item => (item.impugno || "").toUpperCase() === "SI");
+    const noImpugnados = globalTerminos.filter(item => (item.impugno || "").toUpperCase() === "NO");
+
+    // Render Superior (Impugnados)
+    if (impugnados.length === 0) {
+        tableSuperiorBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #666;">No hay registros impugnados.</td></tr>';
+    } else {
+        impugnados.forEach(item => {
+            const row = `
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 3px; width: 1%; white-space: nowrap;"><strong>${item.radicado}</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionante}">${item.accionante}</td>
+                    <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionado || '-'}">${item.accionado || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
+                        <span class="badge badge-secondary">Pendiente</span>
+                    </td>
+                </tr>
+            `;
+            tableSuperiorBody.innerHTML += row;
+        });
+    }
+
+    // Render Corte (No Impugnados)
+    if (noImpugnados.length === 0) {
+        tableCorteBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #666;">No hay registros para envío a corte.</td></tr>';
+    } else {
+        noImpugnados.forEach(item => {
+            const row = `
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 3px; width: 1%; white-space: nowrap;"><strong>${item.radicado}</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionante}">${item.accionante}</td>
+                    <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionado || '-'}">${item.accionado || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
+                        <span class="badge badge-secondary">Pendiente</span>
+                    </td>
+                </tr>
+            `;
+            tableCorteBody.innerHTML += row;
+        });
+    }
+};
 
 // PAGINATION STATE
 let currentPage = 1;

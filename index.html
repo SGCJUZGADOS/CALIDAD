@@ -370,6 +370,11 @@
                                     <i class="fas fa-table"></i> <span>Estadística Tutelas</span>
                                 </a>
                             </li>
+                            <li id="nav-impugnacion">
+                                <a href="javascript:void(0)" onclick="switchModule('impugnacion')">
+                                    <i class="fas fa-gavel"></i> <span>Impugnación--Envío Corte</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
                     <li id="nav-demandas">
@@ -674,6 +679,67 @@
                                 <tfoot id="matrixSalidaTableFoot" style="font-weight: bold; background-color: #e9ecef;">
                                     <!-- Totals -->
                                 </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NEW IMPUGNACION / ENVIO CORTE SECTION -->
+                <div id="impugnacion-section" style="display: none; padding: 20px;">
+                    <div class="card" style="padding: 20px; margin-bottom: 20px;">
+                        <h3 style="color: #004884; margin-bottom: 20px; text-transform: uppercase; font-weight: 800;">
+                            ENVIO AL SUPERIOR</h3>
+                        <div style="overflow-x: auto; width: 80%; margin: 0 auto;">
+                            <!-- Tabla Superior -->
+                            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                                <thead>
+                                    <tr style="background-color: #e9ecef;">
+                                        <th
+                                            style="border: 1px solid #ddd; padding: 3px; width: 1%; white-space: nowrap;">
+                                            Radicado</th>
+                                        <th
+                                            style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            Accionante</th>
+                                        <th
+                                            style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            Accionado</th>
+                                        <th
+                                            style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
+                                            Alerta</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableSuperiorBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card" style="padding: 20px;">
+                        <h3 style="color: #004884; margin-bottom: 20px; text-transform: uppercase; font-weight: 800;">
+                            ENVIO A LA CORTE</h3>
+                        <div style="overflow-x: auto; width: 80%; margin: 0 auto;">
+                            <!-- Tabla Inferior -->
+                            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                                <thead>
+                                    <tr style="background-color: #e9ecef;">
+                                        <th
+                                            style="border: 1px solid #ddd; padding: 3px; width: 1%; white-space: nowrap;">
+                                            Radicado</th>
+                                        <th
+                                            style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            Accionante</th>
+                                        <th
+                                            style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            Accionado</th>
+                                        <th
+                                            style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
+                                            Alerta</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableCorteBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
                             </table>
                         </div>
                     </div>

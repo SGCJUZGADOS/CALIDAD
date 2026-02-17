@@ -173,11 +173,24 @@
     color: white !important;
 }
 
+.sub-menu li.active a {
+    background: #87ceeb !important;
+    /* Azul cielo solicitado */
+    color: #1a237e !important;
+    /* Texto oscuro para contraste */
+    font-weight: 800;
+}
+
 .submenu-arrow {
     margin-left: auto;
-    font-size: 0.7rem !important;
+    font-size: 0.95rem !important;
+    /* Un poco más grande aún */
     transition: transform 0.3s ease;
-    opacity: 0.5;
+    opacity: 1;
+    color: #111;
+    /* Más oscuro para mayor visibilidad */
+    font-weight: 900;
+    /* Más gruesa */
 }
 
 .open>a .submenu-arrow {
