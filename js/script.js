@@ -1013,6 +1013,27 @@ window.handleFormSubmit = function (e) {
     const radicadoResto = document.getElementById('radicadoResto').value;
     const radicadoFull = radicadoResto;
 
+    // VALIDACION MUTUA: DECISION <-> FECHA FALLO
+    const decisionVal = document.getElementById('decision').value;
+    const fechaFalloVal = document.getElementById('fechaNotificacion').value;
+
+    if (decisionVal && !fechaFalloVal) {
+        alert("⚠️ Si selecciona una Decisión de Fondo, DEBE ingresar la FECHA DE FALLO (Sentencia).");
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        }
+        return;
+    }
+    if (!decisionVal && fechaFalloVal) {
+        alert("⚠️ Si ingresa una Fecha de Fallo, DEBE seleccionar una DECISIÓN DE FONDO.");
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        }
+        return;
+    }
+
     // VALIDACIÓN RADICADOR EXTRICTA
     const userRoleRaw = (currentUser && currentUser.role) ? currentUser.role : "";
     if (userRoleRaw.startsWith('radicador')) {
@@ -1375,8 +1396,9 @@ window.updateMatrixStatistics = function () {
         // APLICAR FILTRO DE FECHA DE REPARTO
         if (!isDateInRange(item.fechaReparto, entradaDesde, entradaHasta)) return;
 
-        const d = (item.derecho || "").toUpperCase();
-        let i = (item.ingreso || "");
+        // Normalize Data
+        const d = (item.derecho || "").toUpperCase().trim();
+        let i = (item.ingreso || "").trim();
 
         const dIndex = derechos.indexOf(d);
         const iIndex = ingresos.indexOf(i);
@@ -1414,6 +1436,7 @@ window.updateMatrixStatistics = function () {
     footerHtml += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center; background:#333; color:white;">${grandTotal}</td></tr>`;
     tableFoot.innerHTML = footerHtml;
 
+
     // -------------------------------------------------------------
     // 2. MATRIX SALIDA (Decision de Fondo)
     const tableSalidaBody = document.getElementById('matrixSalidaTableBody');
@@ -1444,6 +1467,8 @@ window.updateMatrixStatistics = function () {
             matrixSalida[dIndex][deciIndex]++;
         }
     });
+
+    // console.log(`Registros procesados en matriz SALIDA: ${matchCountSalida}`);
 
     // Render Salida Body
     let salidaColTotals = Array(decisiones.length).fill(0);
