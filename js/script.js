@@ -1842,7 +1842,7 @@ window.updateImpugnacionTables = function () {
         impugnados.forEach(item => {
             const row = `
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 3px; width: 1%; white-space: nowrap;"><strong>${item.radicado}</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;"><strong>${item.radicado}</strong></td>
                     <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionante}">${item.accionante}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionado || '-'}">${item.accionado || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
@@ -1861,7 +1861,7 @@ window.updateImpugnacionTables = function () {
         noImpugnados.forEach(item => {
             const row = `
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 3px; width: 1%; white-space: nowrap;"><strong>${item.radicado}</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;"><strong>${item.radicado}</strong></td>
                     <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionante}">${item.accionante}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionado || '-'}">${item.accionado || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
