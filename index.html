@@ -595,49 +595,75 @@
                 <!-- NEW MATRIX STATISTICS SECTION -->
                 <div id="estadisticas-tutelas-section" style="display: none; padding: 20px;">
                     <div class="card" style="padding: 20px; margin-bottom: 20px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="display:flex; justify-content:center; align-items:center;">
                             <h3
                                 style="color: #004884; margin-bottom: 20px; text-transform: uppercase; font-weight: 800;">
                                 ENTRADA TUTELAS</h3>
-                            <button onclick="exportMatrixToExcel()" class="btn-primary"
-                                style="background:#28a745; border:none;">
-                                <i class="fas fa-file-excel"></i> Exportar
-                            </button>
                         </div>
 
-                        <div style="overflow-x: auto; text-align: left;">
-                            <table class="table" style="border-collapse: collapse; width: auto; font-size: 0.85rem;">
-                                <thead>
-                                    <tr style="background-color: #f2f2f2;">
-                                        <th
-                                            style="border: 1px solid #ddd; padding: 5px; background: #e9ecef; white-space: nowrap;">
-                                            TIPOS PROCESOS</th>
-                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
-                                            REPARTO</th>
-                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
-                                            COMPETENCIA
-                                        </th>
-                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
-                                            REINGRESO POR
-                                            NULIDAD O COMPETENCIA</th>
-                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
-                                            ENTRADA
-                                            IMPEDIMENTOS</th>
-                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">OTRAS
-                                            ENTRADAS
-                                            NO EFECTIVAS</th>
-                                        <th
-                                            style="border: 1px solid #ddd; padding: 5px; background: #333; color: white; text-align: center;">
-                                            TOTAL</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="matrixTableBody">
-                                    <!-- Populated by JS -->
-                                </tbody>
-                                <tfoot id="matrixTableFoot" style="font-weight: bold; background-color: #e9ecef;">
-                                    <!-- Totals -->
-                                </tfoot>
-                            </table>
+                        <div
+                            style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap; justify-content: center;">
+                            <div style="overflow-x: auto; text-align: left; min-width: 600px;">
+                                <table class="table"
+                                    style="border-collapse: collapse; width: auto; font-size: 0.85rem;">
+                                    <thead>
+                                        <tr style="background-color: #f2f2f2;">
+                                            <th
+                                                style="border: 1px solid #ddd; padding: 5px; background: #e9ecef; white-space: nowrap;">
+                                                TIPOS PROCESOS</th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
+                                                REPARTO</th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
+                                                COMPETENCIA
+                                            </th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
+                                                REINGRESO POR
+                                                NULIDAD O COMPETENCIA</th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
+                                                ENTRADA
+                                                IMPEDIMENTOS</th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">OTRAS
+                                                ENTRADAS
+                                                NO EFECTIVAS</th>
+                                            <th
+                                                style="border: 1px solid #ddd; padding: 5px; background: #333; color: white; text-align: center;">
+                                                TOTAL</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="matrixTableBody">
+                                        <!-- Populated by JS -->
+                                    </tbody>
+                                    <tfoot id="matrixTableFoot" style="font-weight: bold; background-color: #e9ecef;">
+                                        <!-- Totals -->
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            <!-- FILTRO FECHA ENTRADA -->
+                            <div
+                                style="background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #ddd; min-width: 250px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                                <h5
+                                    style="color: #004884; margin-top: 0; margin-bottom: 20px; font-size: 1rem; border-bottom: 2px solid #004884; padding-bottom: 8px; font-weight: 800; text-transform: uppercase;">
+                                    <i class="fas fa-filter"></i> Filtrar por Fecha de Reparto
+                                </h5>
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label
+                                        style="font-size: 0.85rem; color: #333; display: block; margin-bottom: 5px; font-weight: 600;">Desde:</label>
+                                    <input type="date" id="matrixEntradaDesde" class="form-control"
+                                        style="font-size: 1rem; padding: 8px;" onchange="updateMatrixStatistics()">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 20px;">
+                                    <label
+                                        style="font-size: 0.85rem; color: #333; display: block; margin-bottom: 5px; font-weight: 600;">Hasta:</label>
+                                    <input type="date" id="matrixEntradaHasta" class="form-control"
+                                        style="font-size: 1rem; padding: 8px;" onchange="updateMatrixStatistics()">
+                                </div>
+                                <button
+                                    onclick="document.getElementById('matrixEntradaDesde').value=''; document.getElementById('matrixEntradaHasta').value=''; updateMatrixStatistics();"
+                                    style="width: 100%; padding: 10px; font-size: 0.9rem; background: #004884; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                    Limpiar Filtro
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -645,41 +671,78 @@
                     <div class="card" style="padding: 20px;">
                         <h3 style="color: #004884; margin-bottom: 20px; text-transform: uppercase; font-weight: 800;">
                             SALIDA DE TUTELAS</h3>
-                        <div style="overflow-x: auto; text-align: left;">
-                            <table class="table" style="border-collapse: collapse; width: auto; font-size: 0.85rem;">
-                                <thead>
-                                    <tr style="background-color: #f2f2f2;">
-                                        <th
-                                            style="border: 1px solid #ddd; padding: 5px; background: #e9ecef; white-space: nowrap;">
-                                            TIPOS PROCESOS</th>
-                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">CONCEDE
-                                        </th>
-                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">NIEGA</th>
-                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">DECLARA
-                                            IMPROCEDENTE</th>
-                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
-                                            IMPEDIMENTO</th>
-                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">HECHO
-                                            SUPERADO</th>
-                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">RECHAZA
-                                        </th>
-                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">RECHAZA
-                                            POR CONOCIMIENTO PREVIO</th>
-                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">RETIRO
-                                            VOLUNTARIO</th>
-                                        <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">OTRO</th>
-                                        <th
-                                            style="border: 1px solid #ddd; padding: 5px; background: #333; color: white; text-align: center;">
-                                            TOTAL</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="matrixSalidaTableBody">
-                                    <!-- Populated by JS -->
-                                </tbody>
-                                <tfoot id="matrixSalidaTableFoot" style="font-weight: bold; background-color: #e9ecef;">
-                                    <!-- Totals -->
-                                </tfoot>
-                            </table>
+                        <div
+                            style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap; justify-content: center;">
+                            <div style="overflow-x: auto; text-align: left; min-width: 600px;">
+                                <table class="table"
+                                    style="border-collapse: collapse; width: auto; font-size: 0.85rem;">
+                                    <thead>
+                                        <tr style="background-color: #f2f2f2;">
+                                            <th
+                                                style="border: 1px solid #ddd; padding: 5px; background: #e9ecef; white-space: nowrap;">
+                                                TIPOS PROCESOS</th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
+                                                CONCEDE
+                                            </th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">NIEGA
+                                            </th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
+                                                DECLARA
+                                                IMPROCEDENTE</th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
+                                                IMPEDIMENTO</th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">HECHO
+                                                SUPERADO</th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
+                                                RECHAZA
+                                            </th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
+                                                RECHAZA
+                                                POR CONOCIMIENTO PREVIO</th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">RETIRO
+                                                VOLUNTARIO</th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">OTRO
+                                            </th>
+                                            <th
+                                                style="border: 1px solid #ddd; padding: 5px; background: #333; color: white; text-align: center;">
+                                                TOTAL</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="matrixSalidaTableBody">
+                                        <!-- Populated by JS -->
+                                    </tbody>
+                                    <tfoot id="matrixSalidaTableFoot"
+                                        style="font-weight: bold; background-color: #e9ecef;">
+                                        <!-- Totals -->
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            <!-- FILTRO FECHA SALIDA -->
+                            <div
+                                style="background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #ddd; min-width: 250px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                                <h5
+                                    style="color: #004884; margin-top: 0; margin-bottom: 20px; font-size: 1rem; border-bottom: 2px solid #004884; padding-bottom: 8px; font-weight: 800; text-transform: uppercase;">
+                                    <i class="fas fa-filter"></i> Filtrar por Fecha de Fallo
+                                </h5>
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label
+                                        style="font-size: 0.85rem; color: #333; display: block; margin-bottom: 5px; font-weight: 600;">Desde:</label>
+                                    <input type="date" id="matrixSalidaDesde" class="form-control"
+                                        style="font-size: 1rem; padding: 8px;" onchange="updateMatrixStatistics()">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 20px;">
+                                    <label
+                                        style="font-size: 0.85rem; color: #333; display: block; margin-bottom: 5px; font-weight: 600;">Hasta:</label>
+                                    <input type="date" id="matrixSalidaHasta" class="form-control"
+                                        style="font-size: 1rem; padding: 8px;" onchange="updateMatrixStatistics()">
+                                </div>
+                                <button
+                                    onclick="document.getElementById('matrixSalidaDesde').value=''; document.getElementById('matrixSalidaHasta').value=''; updateMatrixStatistics();"
+                                    style="width: 100%; padding: 10px; font-size: 0.9rem; background: #004884; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                    Limpiar Filtro
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -691,11 +754,13 @@
                             ENVIO AL SUPERIOR</h3>
                         <div style="overflow-x: auto; width: 80%; margin: 0 auto;">
                             <!-- Tabla Superior -->
-                            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
                                 <thead>
                                     <tr style="background-color: #e9ecef;">
                                         <th style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">
                                             Radicado</th>
+                                        <th style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">
+                                            Fecha de Fallo</th>
                                         <th
                                             style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                             Accionante</th>
@@ -705,6 +770,9 @@
                                         <th
                                             style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
                                             Alerta</th>
+                                        <th
+                                            style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
+                                            ENVIADO</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tableSuperiorBody">
@@ -719,11 +787,13 @@
                             ENVIO A LA CORTE</h3>
                         <div style="overflow-x: auto; width: 80%; margin: 0 auto;">
                             <!-- Tabla Inferior -->
-                            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
                                 <thead>
                                     <tr style="background-color: #e9ecef;">
                                         <th style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">
                                             Radicado</th>
+                                        <th style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">
+                                            Fecha de Fallo</th>
                                         <th
                                             style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                             Accionante</th>
@@ -733,6 +803,9 @@
                                         <th
                                             style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
                                             Alerta</th>
+                                        <th
+                                            style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
+                                            ENVIADO</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tableCorteBody">

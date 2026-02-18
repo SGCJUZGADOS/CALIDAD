@@ -1308,6 +1308,32 @@ textarea:focus {
     background-color: #f1f5f9;
 }
 
+/* Custom Scrollbar for Tables */
+.table-responsive::-webkit-scrollbar {
+    height: 10px;
+    /* Height for horizontal scrollbar */
+    width: 8px;
+    /* Width for vertical scrollbar */
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    /* Soft gray */
+    border-radius: 10px;
+    border: 2px solid #f1f1f1;
+    /* Creates a padding effect */
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+    /* Stronger gray on hover */
+}
+
 /* Badges and Buttons */
 .badge {
     padding: 5px 12px;

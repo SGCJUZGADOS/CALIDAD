@@ -1068,6 +1068,30 @@ window.handleFormSubmit = function (e) {
         return;
     }
 
+    // NUEVA VALIDACIÓN: Si se seleccionó SI o NO en Impugnó, es obligatorio la Fecha de Fallo
+    if (currentCollection === 'tutelas' && (impugno === "SI" || impugno === "NO")) {
+        if (!fechaNotificacion) {
+            alert("⚠️ Falta ingresar la fecha de fallo.");
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
+            return;
+        }
+    }
+
+    // NUEVA VALIDACIÓN: Si hay fecha de fallo, debe haber una decisión
+    if (currentCollection === 'tutelas' && fechaNotificacion) {
+        if (!decision) {
+            alert("⚠️ Debe ingresar la decisión.");
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
+            return;
+        }
+    }
+
     console.log("Data gathered:", { radicadoFull, accionante, accionado, fechaReparto, derecho, ingreso });
 
     // Recalculate days
@@ -1304,6 +1328,26 @@ window.updateMatrixStatistics = function () {
     const tableFoot = document.getElementById('matrixTableFoot');
     if (!tableBody || !tableFoot) return;
 
+    // Obtener filtros de fecha para ENTRADA
+    const entradaDesde = document.getElementById('matrixEntradaDesde')?.value;
+    const entradaHasta = document.getElementById('matrixEntradaHasta')?.value;
+
+    // Helper para filtrar por rango
+    const isDateInRange = (dateStr, start, end) => {
+        if (!dateStr) return false;
+        if (!start && !end) return true;
+        const d = new Date(dateStr + "T00:00:00");
+        if (start) {
+            const s = new Date(start + "T00:00:00");
+            if (d < s) return false;
+        }
+        if (end) {
+            const e = new Date(end + "T00:00:00");
+            if (d > e) return false;
+        }
+        return true;
+    };
+
     tableBody.innerHTML = '';
     tableFoot.innerHTML = '';
 
@@ -1324,18 +1368,16 @@ window.updateMatrixStatistics = function () {
     ];
 
     // Initialize Matrix 2D Array
-    // matrix[derechoIndex][ingresoIndex] = count
     let matrix = Array(derechos.length).fill(0).map(() => Array(ingresos.length).fill(0));
 
     // Calculate Stats from globalTerminos (Tutelas Cache)
-    // Ensure we are using Tutelas Data, or current view data
-    // Assuming globalTerminos holds the currently loaded collection (tutelas on start)
     globalTerminos.forEach(item => {
-        // Normalize item values
+        // APLICAR FILTRO DE FECHA DE REPARTO
+        if (!isDateInRange(item.fechaReparto, entradaDesde, entradaHasta)) return;
+
         const d = (item.derecho || "").toUpperCase();
         let i = (item.ingreso || "");
 
-        // Find Indexes
         const dIndex = derechos.indexOf(d);
         const iIndex = ingresos.indexOf(i);
 
@@ -1351,7 +1393,7 @@ window.updateMatrixStatistics = function () {
         ingresos.forEach((ingreso, c) => {
             const count = matrix[r][c];
             rowTotal += count;
-            rowHtml += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${count || ((count === 0) ? '' : '')}</td>`; // Show number or empty
+            rowHtml += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${count || ''}</td>`;
         });
         rowHtml += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-weight:bold; background:#e9ecef;">${rowTotal}</td></tr>`;
         tableBody.innerHTML += rowHtml;
@@ -1378,6 +1420,10 @@ window.updateMatrixStatistics = function () {
     const tableSalidaFoot = document.getElementById('matrixSalidaTableFoot');
     if (!tableSalidaBody || !tableSalidaFoot) return;
 
+    // Obtener filtros de fecha para SALIDA
+    const salidaDesde = document.getElementById('matrixSalidaDesde')?.value;
+    const salidaHasta = document.getElementById('matrixSalidaHasta')?.value;
+
     tableSalidaBody.innerHTML = '';
     tableSalidaFoot.innerHTML = '';
 
@@ -1386,6 +1432,9 @@ window.updateMatrixStatistics = function () {
 
     // Calculate Salida Stats
     globalTerminos.forEach(item => {
+        // APLICAR FILTRO DE FECHA DE FALLO (fechaNotificacion)
+        if (!isDateInRange(item.fechaNotificacion, salidaDesde, salidaHasta)) return;
+
         const d = (item.derecho || "").toUpperCase().trim();
         const deci = (item.decision || "").toUpperCase().trim();
         const dIndex = derechos.indexOf(d);
@@ -1444,8 +1493,31 @@ window.exportMatrixToExcel = function () {
         "Entrada Impedimentos", "Otras Entradas no Efectivas"
     ];
 
+    // Obtener filtros de fecha para exportación (usando los de Entrada por defecto o ambos?)
+    // Lo más lógico es exportar lo que se ve en la tabla de Entrada o aplicar ambos si es una matriz global.
+    // Usaremos los filtros de Entrada para la exportación de la matriz de entrada.
+    const entradaDesde = document.getElementById('matrixEntradaDesde')?.value;
+    const entradaHasta = document.getElementById('matrixEntradaHasta')?.value;
+
+    const isDateInRange = (dateStr, start, end) => {
+        if (!dateStr) return false;
+        if (!start && !end) return true;
+        const d = new Date(dateStr + "T00:00:00");
+        if (start) {
+            const s = new Date(start + "T00:00:00");
+            if (d < s) return false;
+        }
+        if (end) {
+            const e = new Date(end + "T00:00:00");
+            if (d > e) return false;
+        }
+        return true;
+    };
+
     let matrix = Array(derechos.length).fill(0).map(() => Array(ingresos.length).fill(0));
     globalTerminos.forEach(item => {
+        if (!isDateInRange(item.fechaReparto, entradaDesde, entradaHasta)) return;
+
         const d = (item.derecho || "").toUpperCase();
         let i = (item.ingreso || "");
         const dIndex = derechos.indexOf(d);
@@ -1502,8 +1574,8 @@ window.editTermino = function (id) {
             document.getElementById('ingreso').value = item.ingreso || "";
             document.getElementById('derecho').value = item.derecho || "";
             document.getElementById('decision').value = item.decision || "";
-            document.getElementById('genero').value = item.genero || "NO";
-            document.getElementById('impugno').value = item.impugno || "NO";
+            document.getElementById('genero').value = ""; // Default to "Seleccione..." on edit as requested
+            document.getElementById('impugno').value = ""; // Default to "Seleccione..." on edit as requested
 
             // Populate New Fields (IDs & Obs)
             document.getElementById('idAccionante').value = item.idAccionante || "";
@@ -1580,7 +1652,7 @@ window.setupRealtimeUpdates = function () {
     }
 
     // Escuchar colección 'tutelas' y renderizar cambios automáticamente
-    window.unsubscribeRealtime = db.collection(currentCollection).orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+    window.unsubscribeRealtime = db.collection(currentCollection).orderBy("fechaReparto", "desc").onSnapshot((snapshot) => {
         globalTerminos = [];
         snapshot.forEach((doc) => {
             const data = doc.data();
@@ -1837,16 +1909,21 @@ window.updateImpugnacionTables = function () {
 
     // Render Superior (Impugnados)
     if (impugnados.length === 0) {
-        tableSuperiorBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #666;">No hay registros impugnados.</td></tr>';
+        tableSuperiorBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color: #666;">No hay registros impugnados.</td></tr>';
     } else {
         impugnados.forEach(item => {
+            const isChecked = item.enviado === true ? 'checked' : '';
             const row = `
                 <tr>
                     <td style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;"><strong>${item.radicado}</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">${formatDate(item.fechaNotificacion)}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionante}">${item.accionante}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionado || '-'}">${item.accionado || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
                         <span class="badge badge-secondary">Pendiente</span>
+                    </td>
+                    <td style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
+                        <input type="checkbox" ${isChecked} onchange="toggleEnviado('${item.id}', this.checked)" style="width: 18px; height: 18px; cursor: pointer;">
                     </td>
                 </tr>
             `;
@@ -1856,16 +1933,21 @@ window.updateImpugnacionTables = function () {
 
     // Render Corte (No Impugnados)
     if (noImpugnados.length === 0) {
-        tableCorteBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #666;">No hay registros para envío a corte.</td></tr>';
+        tableCorteBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color: #666;">No hay registros para envío a corte.</td></tr>';
     } else {
         noImpugnados.forEach(item => {
+            const isChecked = item.enviado === true ? 'checked' : '';
             const row = `
                 <tr>
                     <td style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;"><strong>${item.radicado}</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">${formatDate(item.fechaNotificacion)}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionante}">${item.accionante}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionado || '-'}">${item.accionado || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
                         <span class="badge badge-secondary">Pendiente</span>
+                    </td>
+                    <td style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
+                        <input type="checkbox" ${isChecked} onchange="toggleEnviado('${item.id}', this.checked)" style="width: 18px; height: 18px; cursor: pointer;">
                     </td>
                 </tr>
             `;
@@ -1874,9 +1956,28 @@ window.updateImpugnacionTables = function () {
     }
 };
 
+window.toggleEnviado = function (id, isChecked) {
+    if (!id || id === 'undefined') {
+        console.error("Error: ID de registro no válido.");
+        return;
+    }
+
+    db.collection(currentCollection).doc(id).update({
+        enviado: isChecked
+    }).then(() => {
+        console.log(`Registro ${id} actualizado: enviado = ${isChecked}`);
+        // No es necesario llamar a updateImpugnacionTables() aquí porque
+        // setupRealtimeUpdates() debería capturar el cambio y actualizar globalTerminos,
+        // lo cual disparará el re-render si la lógica está conectada.
+    }).catch(error => {
+        console.error("Error al actualizar estado ENVIADO:", error);
+        alert("Error al guardar el cambio. Por favor intente de nuevo.");
+    });
+};
+
 // PAGINATION STATE
 let currentPage = 1;
-const recordsPerPage = 20;
+const recordsPerPage = 10;
 
 function renderRealtimeTable(terminos) {
     const tbody = document.getElementById('terminosTableBody');
@@ -2104,11 +2205,13 @@ function renderPaginationControls(totalPages) {
 
     let buttons = '';
 
+    // FIRST PAGE BUTTON
+    buttons += `<button onclick="changePage(1)" class="btn-sm" style="padding: 8px 16px; font-size: 1rem; ${currentPage === 1 ? 'opacity:0.5; pointer-events:none;' : ''}" title="Primera Página"><i class="fas fa-step-backward"></i> Primera</button>`;
+
     // Prev Button
     buttons += `<button onclick="changePage(${currentPage - 1})" class="btn-sm" style="padding: 8px 16px; font-size: 1rem; ${currentPage === 1 ? 'opacity:0.5; pointer-events:none;' : ''}">&laquo; Ant</button>`;
 
     // Page Numbers (Simple range: 1 2 ... 5 6)
-    // For simplicity showing all or a slice could be better, implementing simple slice around current
     let startPage = Math.max(1, currentPage - 2);
     let endPage = Math.min(totalPages, currentPage + 2);
 
@@ -2129,6 +2232,9 @@ function renderPaginationControls(totalPages) {
 
     // Next Button
     buttons += `<button onclick="changePage(${currentPage + 1})" class="btn-sm" style="padding: 8px 16px; font-size: 1rem; ${currentPage === totalPages ? 'opacity:0.5; pointer-events:none;' : ''}">Sig &raquo;</button>`;
+
+    // LAST PAGE BUTTON
+    buttons += `<button onclick="changePage(${totalPages})" class="btn-sm" style="padding: 8px 16px; font-size: 1rem; ${currentPage === totalPages ? 'opacity:0.5; pointer-events:none;' : ''}" title="Última Página">Última <i class="fas fa-step-forward"></i></button>`;
 
     pagContainer.innerHTML = buttons;
 }
