@@ -603,6 +603,73 @@
                         <h2 class="mb-4 text-primary" style="color: #1a237e;"><i
                                 class="fas fa-exclamation-circle me-2"></i> Incidentes de Desacato</h2>
 
+                        <!-- PANEL DE CONTROL: BUSQUEDA Y MANUAL -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label style="font-weight: 600; color: #004884;">Buscar por Radicado (23
+                                    dígitos):</label>
+                                <div class="input-group">
+                                    <input type="text" id="searchRadicadoDesacato" class="form-control"
+                                        placeholder="Ej: 05266..." maxlength="23" onkeyup="checkRadicadoDesacato(this)">
+                                    <button class="btn btn-primary" onclick="searchRadicadoDesacatoBtn()">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Al completar 23 dígitos se buscará automáticamente en
+                                    Tutelas.</small>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <button class="btn btn-secondary ms-2" onclick="enableManualDesacato()">
+                                    <i class="fas fa-pen me-2"></i> Ingresar Manualmente
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- FORMULARIO DE REGISTRO (Oculto inicialmente) -->
+                        <form id="formDesacato"
+                            style="display:none; background: #f8f9fa; padding: 25px; border-radius: 15px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+                            <h5 style="color: #004884; margin-bottom: 20px; font-weight: 700;"><i
+                                    class="fas fa-file-contract me-2"></i> Nuevo Incidente</h5>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Radicado</label>
+                                    <input type="text" id="desRadicado" class="form-control" readonly required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">F. Reparto (Incidente)</label>
+                                    <input type="date" id="desFechaReparto" class="form-control" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Decisión</label>
+                                    <select id="desDecision" class="form-control">
+                                        <option value="">Seleccione...</option>
+                                        <option value="Sanción">Sanción</option>
+                                        <option value="Abstención">Abstención</option>
+                                        <option value="Archivo">Archivo</option>
+                                        <option value="Tramite">En Trámite</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Accionante</label>
+                                    <input type="text" id="desAccionante" class="form-control" readonly required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Accionado</label>
+                                    <input type="text" id="desAccionado" class="form-control" readonly required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">F. Fallo</label>
+                                    <input type="date" id="desFechaFallo" class="form-control">
+                                </div>
+                                <div class="col-md-12 text-end mt-4">
+                                    <button type="button" class="btn btn-danger me-2"
+                                        onclick="closeDesacatoForm()">Cancelar</button>
+                                    <button type="submit" class="btn btn-success"><i class="fas fa-save me-2"></i>
+                                        Guardar Incidente</button>
+                                </div>
+                            </div>
+                        </form>
+
                         <!-- Contenedor Tabla -->
                         <div class="table-container fade-in-section">
                             <div class="table-responsive">

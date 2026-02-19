@@ -220,6 +220,10 @@ window.switchModule = function (moduleName) {
                     window.setupRealtimeUpdates();
                 }
             }
+
+            if (typeof window.loadDesacatosTable === 'function') {
+                window.loadDesacatosTable();
+            }
         }
         return;
     }
@@ -3342,3 +3346,169 @@ function selectOptionByText(select, textToken) {
 
 console.log("✅ script.js Loaded Successfully");
 
+
+// ==========================================
+// MÓDULO INCIDENTES DE DESACATO
+// ==========================================
+
+// 1. Check Radicado Length (Auto Search)
+window.checkRadicadoDesacato = function (input) {
+    // Permitir solo números
+    input.value = input.value.replace(/[^0-9]/g, '');
+
+    if (input.value.length === 23) {
+        searchRadicadoDesacatoBtn();
+    }
+};
+
+// 2. Search Logic (Query 'tutelas' collection)
+window.searchRadicadoDesacatoBtn = async function () {
+    const radicadoInput = document.getElementById('searchRadicadoDesacato');
+    const radicado = radicadoInput.value.trim();
+
+    if (radicado.length !== 23) {
+        alert("El radicado debe tener 23 dígitos.");
+        return;
+    }
+
+    try {
+        // Buscar en colección 'tutelas'
+        const snapshot = await db.collection('tutelas').where('radicado', '==', radicado).get();
+
+        if (snapshot.empty) {
+            alert("No se encontró ninguna tutela con ese radicado.\n\nPuedes ingresarlo manualmente.");
+            return;
+        }
+
+        // Tomar el primer registro encontrado
+        const data = snapshot.docs[0].data();
+
+        // Mostrar formulario
+        const form = document.getElementById('formDesacato');
+        form.style.display = 'block';
+
+        // Llenar campos y bloquearlos (Solo lectura)
+        document.getElementById('desRadicado').value = data.radicado || radicado;
+        document.getElementById('desAccionante').value = data.accionante || '';
+        document.getElementById('desAccionado').value = data.accionado || '';
+
+        // Bloquear campos clave
+        document.getElementById('desRadicado').readOnly = true;
+        document.getElementById('desAccionante').readOnly = true;
+        document.getElementById('desAccionado').readOnly = true;
+
+        // Limpiar otros campos
+        document.getElementById('desFechaReparto').value = new Date().toISOString().split('T')[0]; // Hoy por defecto
+        document.getElementById('desDecision').value = '';
+        document.getElementById('desFechaFallo').value = '';
+
+    } catch (error) {
+        console.error("Error buscando tutela:", error);
+        alert("Error al buscar el radicado.");
+    }
+};
+
+// 3. Manual Entry Logic
+window.enableManualDesacato = function () {
+    const form = document.getElementById('formDesacato');
+    form.style.display = 'block';
+    form.reset();
+
+    // Habilitar campos para escritura
+    document.getElementById('desRadicado').readOnly = false;
+    document.getElementById('desAccionante').readOnly = false;
+    document.getElementById('desAccionado').readOnly = false;
+
+    // Set fecha reparto hoy
+    document.getElementById('desFechaReparto').value = new Date().toISOString().split('T')[0];
+};
+
+// 4. Close Form
+window.closeDesacatoForm = function () {
+    document.getElementById('formDesacato').style.display = 'none';
+    document.getElementById('searchRadicadoDesacato').value = '';
+};
+
+// 5. Handle Submit (Save to 'incidentes_desacato')
+document.getElementById('formDesacato').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const radicado = document.getElementById('desRadicado').value.trim();
+    if (!radicado) return;
+
+    const data = {
+        radicado: radicado,
+        fechaReparto: document.getElementById('desFechaReparto').value,
+        accionante: document.getElementById('desAccionante').value.trim(),
+        accionado: document.getElementById('desAccionado').value.trim(),
+        decision: document.getElementById('desDecision').value,
+        fechaFallo: document.getElementById('desFechaFallo').value,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        juzgado: currentUser.juzgado || 'Desconocido' // Guardar quién lo creó
+    };
+
+    try {
+        await db.collection('incidentes_desacato').add(data);
+        alert("Incidente guardado correctamente.");
+        closeDesacatoForm();
+        loadDesacatosTable(); // Recargar tabla
+    } catch (error) {
+        console.error("Error guardando incidente:", error);
+        alert("Error al guardar.");
+    }
+});
+
+// 6. Load Table Logic
+window.loadDesacatosTable = async function () {
+    const tbody = document.getElementById('desacatosTableBody');
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando...</td></tr>';
+
+    try {
+        // Ordenar por fecha de creación descendente (necesitará índice compuesta si es complejo, pero por ahora básico)
+        const snapshot = await db.collection('incidentes_desacato')
+            .orderBy('createdAt', 'desc')
+            .limit(50)
+            .get();
+
+        tbody.innerHTML = '';
+
+        if (snapshot.empty) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay registros de desacato.</td></tr>';
+            return;
+        }
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const row = `
+                <tr>
+                    <td>${data.fechaReparto || '-'}</td>
+                    <td><span class="badge bg-light text-dark border">${data.radicado}</span></td>
+                    <td>${data.accionante}</td>
+                    <td>${data.accionado}</td>
+                    <td>${renderDecisionBadge(data.decision)}</td>
+                    <td>${data.fechaFallo || '-'}</td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
+
+    } catch (error) {
+        console.error("Error cargando tabla desacatos:", error);
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error cargando datos: ${error.message}</td></tr>`;
+    }
+};
+
+function renderDecisionBadge(decision) {
+    if (!decision) return '-';
+    let color = 'secondary';
+    if (decision === 'Sanción') color = 'danger';
+    if (decision === 'Abstención') color = 'warning text-dark';
+    if (decision === 'Archivo') color = 'success';
+    if (decision === 'Tramite') color = 'info text-dark';
+    return `<span class="badge bg-${color}">${decision}</span>`;
+}
+
+// Hook into switchModule (Optional: if we want to auto-load when switching)
+// We already called switchModule logic for logic, we can verify if we need to call loadDesacatosTable() there.
+// Yes, in step 686 I added a comment but didn't call it.
+// I should update switchModule to call window.loadDesacatosTable() if it exists.
