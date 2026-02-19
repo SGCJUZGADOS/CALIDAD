@@ -3351,18 +3351,19 @@ console.log("✅ script.js Loaded Successfully");
 // MÓDULO INCIDENTES DE DESACATO
 // ==========================================
 
-// 1. Check Radicado Length (Auto Search)
+// 1. Check Radicado Length (Filter Only)
 window.checkRadicadoDesacato = function (input) {
     // Permitir solo números
     input.value = input.value.replace(/[^0-9]/g, '');
-
-    if (input.value.length === 23) {
-        searchRadicadoDesacatoBtn();
-    }
 };
 
 // 2. Search Logic (Query 'tutelas' collection)
+// 2. Search Logic (Query 'incidentes_desacato' first, then 'tutelas')
+window.isSearchingDesacato = false;
+
 window.searchRadicadoDesacatoBtn = async function () {
+    if (window.isSearchingDesacato) return;
+
     const radicadoInput = document.getElementById('searchRadicadoDesacato');
     const radicado = radicadoInput.value.trim();
 
@@ -3372,39 +3373,69 @@ window.searchRadicadoDesacatoBtn = async function () {
     }
 
     try {
-        // Buscar en colección 'tutelas'
-        const snapshot = await db.collection('tutelas').where('radicado', '==', radicado).get();
+        window.isSearchingDesacato = true;
 
-        if (snapshot.empty) {
+        // 1. Buscar en 'incidentes_desacato' (Modo Edición)
+        const desacatoSnapshot = await db.collection('incidentes_desacato')
+            .where('radicado', '==', radicado)
+            .limit(1)
+            .get();
+
+        if (!desacatoSnapshot.empty) {
+            // Ya existe un desacato, entrar en modo edición
+            const doc = desacatoSnapshot.docs[0];
+            await editDesacato(doc.id);
+            return;
+        }
+
+        // 2. Si no existe, buscar en 'tutelas' (Modo Creación)
+        const tutelaSnapshot = await db.collection('tutelas')
+            .where('radicado', '==', radicado)
+            .limit(1)
+            .get();
+
+        if (tutelaSnapshot.empty) {
             alert("No se encontró ninguna tutela con ese radicado.\n\nPuedes ingresarlo manualmente.");
             return;
         }
 
         // Tomar el primer registro encontrado
-        const data = snapshot.docs[0].data();
+        const data = tutelaSnapshot.docs[0].data();
 
         // Mostrar formulario
         const form = document.getElementById('formDesacato');
         form.style.display = 'block';
 
+        // Scroll to form
+        form.scrollIntoView({ behavior: 'smooth' });
+
+        // Limpiar ID (es nuevo)
+        document.getElementById('desId').value = '';
+
         // Llenar campos y bloquearlos (Solo lectura)
         document.getElementById('desRadicado').value = data.radicado || radicado;
         document.getElementById('desAccionante').value = data.accionante || '';
         document.getElementById('desAccionado').value = data.accionado || '';
+        document.getElementById('desFechaFallo').value = data.fechaNotificacion || '';
+        document.getElementById('desDecisionTutela').value = data.decision || '';
 
         // Bloquear campos clave
         document.getElementById('desRadicado').readOnly = true;
         document.getElementById('desAccionante').readOnly = true;
         document.getElementById('desAccionado').readOnly = true;
+        document.getElementById('desFechaFallo').readOnly = true;
+        document.getElementById('desDecisionTutela').readOnly = true;
 
-        // Limpiar otros campos
-        document.getElementById('desFechaReparto').value = new Date().toISOString().split('T')[0]; // Hoy por defecto
-        document.getElementById('desDecision').value = '';
-        document.getElementById('desFechaFallo').value = '';
+        // Limpiar campos de fecha opcionales (NO intentar acceder a desFechaReparto)
+        document.getElementById('desFechaSolicitud').value = '';
+        document.getElementById('desFechaApertura').value = '';
+        document.getElementById('desFechaSancion').value = '';
 
     } catch (error) {
-        console.error("Error buscando tutela:", error);
-        alert("Error al buscar el radicado.");
+        console.error("Error buscando radicado:", error);
+        alert("Error al buscar el radicado: " + error.message);
+    } finally {
+        window.isSearchingDesacato = false;
     }
 };
 
@@ -3419,6 +3450,10 @@ window.enableManualDesacato = function () {
     document.getElementById('desAccionante').readOnly = false;
     document.getElementById('desAccionado').readOnly = false;
 
+    // Estos quedan editables si es manual
+    document.getElementById('desFechaFallo').readOnly = false;
+    document.getElementById('desDecisionTutela').readOnly = false;
+
     // Set fecha reparto hoy
     document.getElementById('desFechaReparto').value = new Date().toISOString().split('T')[0];
 };
@@ -3427,6 +3462,7 @@ window.enableManualDesacato = function () {
 window.closeDesacatoForm = function () {
     document.getElementById('formDesacato').style.display = 'none';
     document.getElementById('searchRadicadoDesacato').value = '';
+    document.getElementById('desId').value = '';
 };
 
 // 5. Handle Submit (Save to 'incidentes_desacato')
@@ -3436,35 +3472,81 @@ document.getElementById('formDesacato').addEventListener('submit', async functio
     const radicado = document.getElementById('desRadicado').value.trim();
     if (!radicado) return;
 
+    const id = document.getElementById('desId').value; // Hidden ID
+
     const data = {
         radicado: radicado,
-        fechaReparto: document.getElementById('desFechaReparto').value,
+        // fechaReparto removed
+        fechaSolicitud: document.getElementById('desFechaSolicitud').value,
+        fechaApertura: document.getElementById('desFechaApertura').value,
+        fechaSancion: document.getElementById('desFechaSancion').value,
         accionante: document.getElementById('desAccionante').value.trim(),
         accionado: document.getElementById('desAccionado').value.trim(),
-        decision: document.getElementById('desDecision').value,
-        fechaFallo: document.getElementById('desFechaFallo').value,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        juzgado: currentUser.juzgado || 'Desconocido' // Guardar quién lo creó
+        fechaFalloTutela: document.getElementById('desFechaFallo').value, // Guardar dato de tutela reference
+        decisionTutela: document.getElementById('desDecisionTutela').value, // Guardar dato de tutela reference
+        juzgado: currentUser.juzgado || 'Desconocido'
     };
 
+    if (!id) {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+    }
+
     try {
-        await db.collection('incidentes_desacato').add(data);
-        alert("Incidente guardado correctamente.");
+        if (id) {
+            await db.collection('incidentes_desacato').doc(id).update(data);
+            alert("Incidente actualizado correctamente.");
+        } else {
+            await db.collection('incidentes_desacato').add(data);
+            alert("Incidente guardado correctamente.");
+        }
         closeDesacatoForm();
         loadDesacatosTable(); // Recargar tabla
     } catch (error) {
         console.error("Error guardando incidente:", error);
-        alert("Error al guardar.");
+        alert("Error al guardar: " + error.message);
     }
 });
+
+// Edit Logic
+window.editDesacato = async function (id) {
+    try {
+        const doc = await db.collection('incidentes_desacato').doc(id).get();
+        if (!doc.exists) {
+            alert("El incidente no existe.");
+            return;
+        }
+        const data = doc.data();
+
+        // Populate Form
+        document.getElementById('desId').value = id;
+        document.getElementById('desRadicado').value = data.radicado || '';
+        document.getElementById('desAccionante').value = data.accionante || '';
+        document.getElementById('desAccionado').value = data.accionado || '';
+        document.getElementById('desFechaFallo').value = data.fechaFalloTutela || ''; // Tutela data
+        document.getElementById('desDecisionTutela').value = data.decisionTutela || ''; // Tutela data
+
+        // Editable Dates
+        document.getElementById('desFechaSolicitud').value = data.fechaSolicitud || '';
+        document.getElementById('desFechaApertura').value = data.fechaApertura || '';
+        document.getElementById('desFechaSancion').value = data.fechaSancion || '';
+
+        // Show Form
+        document.getElementById('formDesacato').style.display = 'block';
+        // Scroll to form
+        document.getElementById('formDesacato').scrollIntoView({ behavior: 'smooth' });
+
+    } catch (error) {
+        console.error("Error cargando incidente para editar:", error);
+        alert("Error cargando editar: " + error.message);
+    }
+};
 
 // 6. Load Table Logic
 window.loadDesacatosTable = async function () {
     const tbody = document.getElementById('desacatosTableBody');
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center">Cargando...</td></tr>';
 
     try {
-        // Ordenar por fecha de creación descendente (necesitará índice compuesta si es complejo, pero por ahora básico)
         const snapshot = await db.collection('incidentes_desacato')
             .orderBy('createdAt', 'desc')
             .limit(50)
@@ -3473,20 +3555,35 @@ window.loadDesacatosTable = async function () {
         tbody.innerHTML = '';
 
         if (snapshot.empty) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay registros de desacato.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No hay registros de desacato.</td></tr>';
             return;
         }
 
         snapshot.forEach(doc => {
             const data = doc.data();
+            const id = doc.id;
             const row = `
                 <tr>
-                    <td>${data.fechaReparto || '-'}</td>
-                    <td><span class="badge bg-light text-dark border">${data.radicado}</span></td>
+                    <td>${data.fechaFalloTutela ? data.fechaFalloTutela.split('-').reverse().join('-') : '-'}</td>
+                    <td>
+                        <span class="badge bg-white text-danger border" style="font-size: 1.1em; font-weight: bold; border: 1px solid #dc3545 !important;">
+                            ${data.radicado}
+                        </span>
+                    </td>
                     <td>${data.accionante}</td>
                     <td>${data.accionado}</td>
-                    <td>${renderDecisionBadge(data.decision)}</td>
-                    <td>${data.fechaFallo || '-'}</td>
+                    <td>${data.decisionTutela || '-'}</td>
+                    <td>${data.fechaSolicitud ? data.fechaSolicitud.split('-').reverse().join('-') : '-'}</td>
+                    <td>${data.fechaApertura ? data.fechaApertura.split('-').reverse().join('-') : '-'}</td>
+                    <td>${data.fechaSancion ? data.fechaSancion.split('-').reverse().join('-') : '-'}</td>
+                    <td class="text-center">
+                        <button class="btn-action-edit me-1" onclick="editDesacato('${id}')" title="Modificar Incidente">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                         <button class="btn-action-delete" onclick="deleteDesacato('${id}')" title="Eliminar Incidente">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
                 </tr>
             `;
             tbody.insertAdjacentHTML('beforeend', row);
@@ -3494,19 +3591,24 @@ window.loadDesacatosTable = async function () {
 
     } catch (error) {
         console.error("Error cargando tabla desacatos:", error);
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error cargando datos: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Error cargando datos: ${error.message}</td></tr>`;
     }
 };
 
-function renderDecisionBadge(decision) {
-    if (!decision) return '-';
-    let color = 'secondary';
-    if (decision === 'Sanción') color = 'danger';
-    if (decision === 'Abstención') color = 'warning text-dark';
-    if (decision === 'Archivo') color = 'success';
-    if (decision === 'Tramite') color = 'info text-dark';
-    return `<span class="badge bg-${color}">${decision}</span>`;
-}
+window.deleteDesacato = async function (id) {
+    if (confirm("¿Está seguro de que desea eliminar este Incidente de Desacato?\n\nEsta acción no se puede deshacer.")) {
+        try {
+            await db.collection('incidentes_desacato').doc(id).delete();
+            // alert("Incidente eliminado."); // Opcional, para que sea más fluido no alertar
+            loadDesacatosTable();
+        } catch (error) {
+            console.error("Error eliminando:", error);
+            alert("Error al eliminar: " + error.message);
+        }
+    }
+};
+
+/* Removed old renderDecisionBadge function as decision field is gone */
 
 // Hook into switchModule (Optional: if we want to auto-load when switching)
 // We already called switchModule logic for logic, we can verify if we need to call loadDesacatosTable() there.

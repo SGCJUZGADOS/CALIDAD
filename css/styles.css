@@ -1735,6 +1735,19 @@ textarea:focus {
     display: block;
 }
 
+
+/* Premium Red Button */
+.btn-premium-red {
+    background: linear-gradient(180deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    box-shadow: 0 4px 0 #a71d2a, 0 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-premium-red:hover {
+    box-shadow: 0 6px 0 #a71d2a, 0 12px 20px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(180deg, #e4606d 0%, #dc3545 100%);
+}
+
 #divJuzgadoDestino select {
     border: 1px solid #d4af3777;
     background: white;

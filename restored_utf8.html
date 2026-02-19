@@ -1,0 +1,400 @@
+﻿                <div class="dash-container" id="main-dash-container">
+                    <!-- Data Entry Form -->
+                    <div class="data-form-card">
+                        <h3
+                            style="text-align: center; text-transform: uppercase; color: #333; margin-bottom: 2rem; font-weight: 800; letter-spacing: 1px;">
+                            Nuevo Registro
+                        </h3>
+
+                        <!-- PDF Import Section (Initially Hidden) -->
+                        <div id="pdfImportContainer" class="pdf-import-banner" style="display: none;">
+                            <h5 style="margin-bottom: 10px; color: #333; font-weight: bold;"><i class="fas fa-file-pdf"
+                                    style="color: #dc3545; font-size: 1.2rem;"></i> Carga
+                                Autom├ítica (Acta de Reparto)</h5>
+                            <p style="font-size: 0.9rem; margin-bottom: 10px; color: #666;">Seleccione el archivo
+                                PDF del
+                                acta de reparto para diligenciar autom├íticamente el formulario.</p>
+                            <button type="button" class="btn-sm"
+                                style="background-color: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;"
+                                onclick="document.getElementById('actaPdfInput').click()">
+                                <i class="fas fa-upload"></i> Seleccionar Acta PDF
+                            </button>
+                            <input type="file" id="actaPdfInput" accept=".pdf" style="display:none"
+                                onchange="window.processActaPDF(this)">
+                            <span id="pdfStatus" style="margin-left: 10px; font-weight: bold; color: #dc3545;"></span>
+                        </div>
+
+                        <form id="terminosForm" onsubmit="handleFormSubmit(event)">
+                            <div class="form-grid">
+                                <!-- 1. ASIGNAR JUZGADO (Para Radicador) - MOVIDO AL INICIO -->
+                                <div class="form-group" id="divJuzgadoDestino"
+                                    style="display:none; grid-column: span 2;">
+                                    <label style="color: #bfa15f; font-weight: bold;">1. ASIGNAR A JUZGADO</label>
+                                    <select id="juzgadoDestino" class="form-control" required>
+                                        <option value="">Cargando Juzgados...</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Radicado</label>
+                                    <div class="input-group-radicado">
+                                        <!-- Prefijo eliminado por solicitud usuario -->
+                                        <input type="text" id="radicadoResto" class="form-control"
+                                            placeholder="05266311000220260006300 (23 d├¡gitos)" minlength="23"
+                                            maxlength="23" pattern="\d{23}"
+                                            title="Debe tener exactamente 23 d├¡gitos num├®ricos" required
+                                            oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Fecha Reparto</label>
+                                    <input type="date" id="fechaReparto" class="form-control" style="max-width: 200px;"
+                                        required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Accionante</label>
+                                    <input type="text" id="accionante" class="form-control"
+                                        placeholder="Nombre Completo" required
+                                        oninput="this.value = this.value.toUpperCase().replace(/[0-9]/g, '')">
+                                </div>
+                                <div class="form-group">
+                                    <label>Doc. Id. Accionante</label>
+                                    <input type="text" id="idAccionante" class="form-control" placeholder="Solo n├║meros"
+                                        pattern="[0-9]+" title="Solo n├║meros permitidos"
+                                        oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                </div>
+                                <div class="form-group">
+                                    <label>Accionado</label>
+                                    <input type="text" id="accionado" class="form-control" placeholder="Nombre Completo"
+                                        required oninput="this.value = this.value.toUpperCase().replace(/[0-9]/g, '')">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Doc. Id. Accionado</label>
+                                    <input type="text" id="idAccionado" class="form-control" placeholder="Solo n├║meros"
+                                        pattern="[0-9]+" title="Solo n├║meros permitidos"
+                                        oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                </div>
+
+                                <!-- Row 2, Col 3: Spacer for Radicador -->
+                                <div class="form-group radicador-only-spacer" style="height: 1px; visibility: hidden;">
+                                </div>
+
+                                <!-- Row 2, Col 4: Ingreso -->
+                                <div class="form-group">
+                                    <label>Tipo de Ingreso</label>
+                                    <select id="ingreso" class="form-control">
+                                        <option value="">Seleccione...</option>
+                                        <option value="Reparto">Reparto</option>
+                                        <option value="Competencia">Competencia</option>
+                                        <option value="Reingreso por Nulidad o por Competencia">Reingreso por
+                                            Nulidad o por
+                                            Competencia</option>
+                                        <option value="Entrada Impedimentos">Entrada Impedimentos</option>
+                                        <option value="Otras Entradas no Efectivas">Otras Entradas no Efectivas
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Observaciones</label>
+                                    <textarea id="observaciones" class="form-control" rows="1"
+                                        placeholder="Comentarios adicionales... (Opcional)"></textarea>
+                                </div>
+
+                                <!-- RESTORED ADMIN/JUZGADO FIELDS -->
+                                <div class="form-group" id="group-fechaFallo">
+                                    <label>Fecha Fallo (Sentencia)</label>
+                                    <input type="date" id="fechaNotificacion" class="form-control">
+                                </div>
+
+                                <div class="form-group" id="group-diaSiete">
+                                    <label>D├¡a Siete (L├¡mite)</label>
+                                    <input type="date" id="diaSiete" class="form-control" readonly
+                                        style="background-color: #f0f0f0;">
+                                </div>
+
+                                <div class="form-group" id="group-diaDiez">
+                                    <label>D├¡a Diez (L├¡mite)</label>
+                                    <input type="date" id="diaDiez" class="form-control" readonly
+                                        style="background-color: #f0f0f0;">
+                                </div>
+
+                                <div class="form-group" style="display:none;" id="group-alerta-container">
+                                    <label>Estado / Alerta</label>
+                                    <select id="alerta" class="form-control">
+                                        <option value="Verde">A Tiempo</option>
+                                        <option value="Amarillo">Alerta</option>
+                                        <option value="Rojo">Vencido</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group" id="group-asignadoA">
+                                    <label>Asignado A</label>
+                                    <input type="text" id="asignadoA" class="form-control"
+                                        placeholder="Nombre funcionario">
+                                </div>
+
+                                <div class="form-group" id="group-derecho">
+                                    <label>Derecho Vulnerado</label>
+                                    <select id="derecho" class="form-control">
+                                        <option value="">Seleccione...</option>
+                                        <option value="SALUD">SALUD</option>
+                                        <option value="SEGURIDAD SOCIAL">SEGURIDAD SOCIAL</option>
+                                        <option value="VIDA">VIDA</option>
+                                        <option value="M├ìNIMO VITAL">M├ìNIMO VITAL</option>
+                                        <option value="IGUALDAD">IGUALDAD</option>
+                                        <option value="EDUCACI├ôN">EDUCACI├ôN</option>
+                                        <option value="DEBIDO PROCESO">DEBIDO PROCESO</option>
+                                        <option value="DERECHO DE PETICI├ôN">DERECHO DE PETICI├ôN</option>
+                                        <option value="DERECHO A LA INFORMACI├ôN P├ÜBLICA">DERECHO A LA INFORMACI├ôN
+                                            P├ÜBLICA
+                                        </option>
+                                        <option value="CONTRA PROVIDENCIAS JUDICIALES">CONTRA PROVIDENCIAS JUDICIALES
+                                        </option>
+                                        <option value="MEDIO AMBIENTE">MEDIO AMBIENTE</option>
+                                        <option value="OTROS">OTROS</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group" id="group-decision">
+                                    <label>Decisi├│n de Fondo</label>
+                                    <select id="decision" class="form-control">
+                                        <option value="">Pendiente...</option>
+                                        <option value="CONCEDE">CONCEDE</option>
+                                        <option value="NIEGA">NIEGA</option>
+                                        <option value="DECLARA IMPROCEDENTE">DECLARA IMPROCEDENTE</option>
+                                        <option value="IMPEDIMENTO">IMPEDIMENTO</option>
+                                        <option value="HECHO SUPERADO">HECHO SUPERADO</option>
+                                        <option value="RECHAZA">RECHAZA</option>
+                                        <option value="RECHAZA POR CONOCIMIENTO PREVIO">RECHAZA POR CONOCIMIENTO PREVIO
+                                        </option>
+                                        <option value="RETIRO VOLUNTARIO">RETIRO VOLUNTARIO</option>
+                                        <option value="OTRO">OTRO</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group" id="group-genero">
+                                    <label>Perspectiva de G├®nero</label>
+                                    <select id="genero" class="form-control">
+                                        <option value="">Seleccione...</option>
+                                        <option value="NO">NO</option>
+                                        <option value="SI">S├ì</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group" id="group-impugno">
+                                    <label>┬┐Impugn├│?</label>
+                                    <select id="impugno" class="form-control">
+                                        <option value="">Seleccione...</option>
+                                        <option value="NO">NO</option>
+                                        <option value="SI">S├ì</option>
+                                    </select>
+                                </div>
+
+
+                            </div>
+
+                            <div style="display:flex; justify-content:center; align-items: center; gap: 15px;">
+                                <!-- INDICADOR DE EDICI├ôN (AHORA JUNTO A LOS BOTONES) -->
+                                <div id="editModeIndicator" style="display:none;">
+                                    <span
+                                        style="background-color: #dc3545; color: white; padding: 8px 15px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                        <i class="fas fa-edit"></i> MODO EDICI├ôN
+                                    </span>
+                                </div>
+
+                                <button type="submit" class="btn-success">Guardar Registro</button>
+                                <button type="button" id="cancelEditBtn" onclick="window.resetForm()" class="btn-danger"
+                                    style="display:none;">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Data Table -->
+                    <div class="data-table-card">
+                        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <h3 style="margin:0;">Seguimiento de Tutelas</h3>
+                            <span id="totalCount" class="total-badge"><i class="fas fa-layer-group"></i> Total:
+                                0</span>
+                        </div>
+
+                        <!-- Toolbar: Buscador y Exportar -->
+                        <div class="table-toolbar"
+                            style="display: flex; flex-wrap: wrap; justify-content: space-between; margin-bottom: 15px; gap: 10px; align-items: center;">
+                            <div
+                                style="display: flex; gap: 15px; flex: 1; min-width: 400px; flex-wrap: wrap; align-items: center;">
+
+                                <!-- 1. BUSCADOR GENERAL (M├ís grande) -->
+                                <div style="flex: 2; min-width: 250px;">
+                                    <label for="searchInput"
+                                        style="font-size: 0.8rem; color: #666; margin-bottom: 2px;">Buscar
+                                        (Radicado,
+                                        Partes...)</label>
+                                    <input type="text" id="searchInput" placeholder="­ƒöì Escribe para buscar..."
+                                        style="width: 100%; padding: 10px 15px; border-radius: 6px; border: 1px solid #aaa; font-size: 1rem; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+                                </div>
+
+                                <!-- 2. FILTRO DOCUMENTO (C├®dula/NIT) -->
+                                <div style="flex: 2; min-width: 250px;">
+                                    <label for="filterDocumento"
+                                        style="font-size: 0.8rem; color: #666; margin-bottom: 2px;">
+                                        Buscar por C├®dula/NIT
+                                    </label>
+                                    <input type="text" id="filterDocumento" onkeyup="filterAndRender()"
+                                        placeholder="Ingrese n├║mero..."
+                                        style="width: 100%; padding: 10px 15px; border-radius: 6px; border: 1px solid #aaa; font-size: 1rem;">
+                                </div>
+
+                                <!-- 3. FILTRO FECHA -->
+                                <div style="flex: 1; min-width: 150px;">
+                                    <label for="filterRadicadoAnio"
+                                        style="font-size: 0.8rem; color: #666; margin-bottom: 2px;">A├▒o y
+                                        Consecutivo</label>
+                                    <input type="text" id="filterRadicadoAnio" placeholder="Ej: 202600001"
+                                        oninput="filterAndRender()"
+                                        style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #aaa; font-size: 1rem;">
+                                </div>
+
+                                <div style="flex: 1; min-width: 150px;">
+                                    <label for="filterFecha"
+                                        style="font-size: 0.8rem; color: #666; margin-bottom: 2px;">Fecha
+                                        Reparto</label>
+                                    <input type="date" id="filterFecha" onchange="filterAndRender()"
+                                        style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #aaa; font-size: 1rem;">
+                                </div>
+
+                                <!-- 4. FILTRO JUZGADO -->
+                                <div id="group-filter-juzgado" style="flex: 2; min-width: 250px;">
+                                    <label for="filterJuzgadoTabla"
+                                        style="font-size: 0.8rem; color: #666; margin-bottom: 2px;">Filtrar por
+                                        Despacho</label>
+                                    <select id="filterJuzgadoTabla" class="form-control" onchange="filterAndRender()"
+                                        style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #aaa; font-size: 1rem;">
+                                        <option value="">Todos los Despachos</option>
+                                    </select>
+                                </div>
+
+                            </div>
+                            <button id="importBtn" onclick="document.getElementById('excelInput').click()"
+                                class="btn-premium btn-premium-info" style="width: auto;">
+                                <i class="fas fa-file-import"></i> Importar Excel
+                            </button>
+                            <input type="file" id="excelInput" accept=".xlsx, .xls" style="display:none"
+                                onchange="handleExcelUpload(this)">
+
+                            <button id="exportBtn" onclick="exportToExcel()" class="btn-premium btn-premium-green"
+                                style="width: auto;">
+                                <i class="fas fa-file-excel"></i> Exportar
+                            </button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table" id="tablaTerminos">
+                                <thead>
+                                    <tr>
+                                        <th>F. Reparto</th>
+                                        <th id="colJuzgadoHeader" style="display:none;">Juzgado</th>
+                                        <th>Radicado</th>
+                                        <th>Accionante</th>
+                                        <th>Doc. Id. Accionante</th>
+                                        <th>Accionado</th>
+                                        <th>Doc. Id. Accionado</th>
+                                        <th id="colAsignado">Asignado</th>
+                                        <th id="colFallo">F. Fallo</th>
+                                        <th id="colDia10">D├¡a 10</th>
+                                        <th id="colCumplio">┬┐Cumpli├│?</th>
+                                        <th id="colAlerta">Alerta</th>
+                                        <th id="colDecision">Decisi├│n</th>
+                                        <th id="colDerecho">Derecho</th>
+                                        <th id="colGenero">G├®nero</th>
+                                        <th id="colImpugno">Impugn├│</th>
+                                        <th id="colObservaciones" style="display:none;">Observaciones</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="terminosTableBody">
+                                    <!-- Data rows will populate here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart.js CDN -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+        </div>
+        </div>
+
+
+
+        <!-- MODAL CAMBIAR CONTRASE├æA PROPIA -->
+        <div id="changePasswordModal" class="modal">
+            <div class="modal-content login-content" style="max-width: 400px;">
+                <span class="close-modal" onclick="closeChangePasswordModal()">&times;</span>
+                <div class="login-header">
+                    <h3><i class="fas fa-key"></i> Cambiar Mi Contrase├▒a</h3>
+                </div>
+                <form id="changePasswordForm" onsubmit="handleChangePassword(event)">
+                    <div class="form-group">
+                        <label>Contrase├▒a Actual</label>
+                        <input type="password" id="currentPassword" class="form-control" required
+                            placeholder="Ingrese su contrase├▒a actual">
+                    </div>
+                    <div class="form-group">
+                        <label>Nueva Contrase├▒a</label>
+                        <input type="password" id="newOwnPassword" class="form-control" required minlength="4"
+                            placeholder="Nueva contrase├▒a">
+                    </div>
+                    <button type="submit" class="btn-primary" style="width:100%">Actualizar</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Firebase SDKs (Compat version for easier direct usage) -->
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+        <!-- PDF.js for parsing Actas -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+        <script>
+            // Initialize PDF.js worker
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        </script>
+
+        <!-- History Modal -->
+        <div id="historyModal" class="modal">
+            <div class="modal-content" style="max-width: 800px; background-color: #212529; color: white;">
+                <span class="close-modal" onclick="closeHistoryModal()">&times;</span>
+                <div class="login-header" style="text-align: center; margin-bottom: 2rem;">
+                    <h2 style="color: #D4AF37;"><i class="fas fa-history"></i> Historial de Cambios</h2>
+                    <p style="color: #ccc;">Versiones anteriores de este registro</p>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="table" style="width: 100%; color: white;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #444;">
+                                <th style="color: #D4AF37;">Fecha</th>
+                                <th style="color: #D4AF37;">Usuario</th>
+                                <th style="color: #D4AF37;">Acci├│n</th>
+                                <th style="color: #D4AF37;">Opciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================
+     MEJORAS SGC v2.0
+     AGREGAR EN ESTE ORDEN (IMPORTANTE)
+     ============================================ -->
