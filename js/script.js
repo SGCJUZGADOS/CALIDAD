@@ -74,10 +74,19 @@ window.switchModule = function (moduleName) {
     const sidebar = document.querySelector('.dashboard-sidebar');
     if (sidebar) {
         if (window.innerWidth <= 768) {
-            sidebar.classList.add('open');
-        } else {
-            sidebar.classList.remove('collapsed');
+            sidebar.classList.add('open'); // Mobile: Close on click (wait, logic was ADD open?)
+            // Actually, usually on mobile 'open' means visible. If they click a link, they usually want it to close (so they can see content).
+            // The original code ADDED 'open'. That might be wrong for mobile too if it covers content?
+            // But for now, user asked about "collapsed" which implies desktop.
+            // Original:
+            // if (window.innerWidth <= 768) { sidebar.classList.add('open'); }
+            // else { sidebar.classList.remove('collapsed'); }
+
+            // New behavior:
+            // Mobile: If we click a link, we probably want to CLOSE the sidebar so we can see the module we just opened.
+            sidebar.classList.remove('open');
         }
+        // Desktop: DO NOTHING. Keep current state (collapsed or expanded).
     }
 
     // 2. TOGGLE VIEW CONTAINERS & UPDATE HEADER STYLE
@@ -879,6 +888,9 @@ window.handleLogin = function (e) {
 // UNIFIED DASHBOARD ENTRY
 // ==========================================
 window.enterDashboard = function () {
+    // LOCK BODY SCROLL
+    document.body.classList.add('dashboard-active');
+
     const loginModal = document.getElementById("loginModal");
     const dashboard = document.getElementById("dashboard");
     const welcomeMsg = document.getElementById("welcomeMsg");
@@ -959,17 +971,18 @@ window.toggleSubmenu = function (submenuId) {
             submenu.classList.add('open');
             parentLi.classList.add('open');
 
-            // Auto expand sidebar if collapsed
-            const sidebar = document.querySelector('.dashboard-sidebar');
-            if (sidebar && sidebar.classList.contains('collapsed')) {
-                toggleSidebar();
-            }
+            // Auto expand sidebar if collapsed - REMOVED PER USER REQUEST
+            // const sidebar = document.querySelector('.dashboard-sidebar');
+            // if (sidebar && sidebar.classList.contains('collapsed')) {
+            //     toggleSidebar();
+            // }
         }
     }
 };
 
 window.logout = function () {
     if (confirm("¿Seguro que desea cerrar sesión?")) {
+        document.body.classList.remove('dashboard-active');
         dashboard.style.display = "none";
         localStorage.removeItem('sgc_user'); // CLEAR SESSION
         currentUser = {};
