@@ -65,6 +65,10 @@ window.switchModule = function (moduleName) {
         // No desmarcar el padre si estamos en un hijo
         if (moduleName === 'estadisticas_tutelas' && li.id === 'nav-tutelas') {
             li.classList.add('active');
+        } else if (moduleName === 'impugnacion' && li.id === 'nav-tutelas') {
+            li.classList.add('active');
+        } else if (moduleName === 'desacatos' && li.id === 'nav-tutelas') {
+            li.classList.add('active');
         } else {
             li.classList.remove('active');
         }
@@ -119,6 +123,9 @@ window.switchModule = function (moduleName) {
 
     const impSection = document.getElementById('impugnacion-section');
     if (impSection) impSection.style.display = 'none';
+
+    const desacatosSection = document.getElementById('desacatos-section'); // NEW
+    if (desacatosSection) desacatosSection.style.display = 'none';
 
     if (moduleName === 'users') {
         const navItem = document.getElementById('sidebarBtnUsers');
@@ -190,6 +197,27 @@ window.switchModule = function (moduleName) {
             } else {
                 if (typeof window.updateImpugnacionTables === 'function') {
                     window.updateImpugnacionTables();
+                }
+            }
+        }
+        return;
+    }
+
+    // --- INCIDENTES DESACATO ---
+    if (moduleName === 'desacatos') {
+        const navItem = document.getElementById('nav-desacatos');
+        if (navItem) navItem.classList.add('active');
+
+        if (headerTitle) headerTitle.innerHTML = '<i class="fas fa-exclamation-circle"></i> INCIDENTES DE DESACATO';
+
+        const desContainer = document.getElementById('desacatos-section');
+        if (desContainer) {
+            desContainer.style.display = 'block';
+
+            if (currentCollection !== 'tutelas') {
+                currentCollection = 'tutelas';
+                if (typeof window.setupRealtimeUpdates === 'function') {
+                    window.setupRealtimeUpdates();
                 }
             }
         }

@@ -375,6 +375,11 @@
                                     <i class="fas fa-share-square"></i> <span>Impugnación--Envío Corte</span>
                                 </a>
                             </li>
+                            <li id="nav-desacatos">
+                                <a href="javascript:void(0)" onclick="switchModule('desacatos')">
+                                    <i class="fas fa-exclamation-circle"></i> <span>Incidentes de Desacato</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
                     <li id="nav-demandas">
@@ -588,6 +593,39 @@
                                     <!-- JS fills this -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN INCIDENTES DE DESACATO -->
+                <div id="desacatos-section" class="module-section" style="display: none; padding: 20px;">
+                    <div class="card" style="padding: 30px; background: white; border-radius: 20px;">
+                        <h2 class="mb-4 text-primary" style="color: #1a237e;"><i
+                                class="fas fa-exclamation-circle me-2"></i> Incidentes de Desacato</h2>
+
+                        <!-- Contenedor Tabla -->
+                        <div class="table-container fade-in-section">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle" style="width: 100%;">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>F. Reparto</th>
+                                            <th>Radicado</th>
+                                            <th>Accionante</th>
+                                            <th>Accionado</th>
+                                            <th>Decisión</th>
+                                            <th>F. Fallo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="desacatosTableBody">
+                                        <!-- Se llenará con JS o manualmente por ahora -->
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted">No hay registros de desacato
+                                                aún.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
