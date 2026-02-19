@@ -54,6 +54,8 @@ body {
     color: var(--text-color);
     line-height: 1.6;
     background-color: var(--light-bg);
+    zoom: 0.8;
+    /* Default zoom 80% per user request */
 }
 
 /* Header & Nav */
