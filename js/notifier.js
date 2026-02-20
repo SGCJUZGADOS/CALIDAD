@@ -119,6 +119,7 @@ async function runNotifier() {
         // Note: Filtering by emailSent=false is more efficient than fetching all.
         const snapshot = await db.collection(coll)
             .where('emailSent', '==', false)
+            .limit(50)
             .get();
 
         if (snapshot.empty) {

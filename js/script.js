@@ -1163,6 +1163,9 @@ window.handleFormSubmit = function (e) {
     // Recalculate days
     const diaSiete = addBusinessDays(fechaReparto, 7);
     const diaDiez = addBusinessDays(fechaReparto, 10);
+    // NEW LOGIC: Impugnacion limit is now calculated from Notificacion Fallo
+    const notificacionFallo = document.getElementById('notificacionFallo').value || "";
+    const fechaLimiteImpugnacion = notificacionFallo ? addBusinessDays(notificacionFallo, 5) : "";
 
     // Lógica de Alerta y Cumplimiento
     let alertaStatus = "Verde";
@@ -1260,6 +1263,8 @@ window.handleFormSubmit = function (e) {
                 fechaNotificacion: fechaNotificacion || "",
                 diaSiete: diaSiete || "",
                 diaDiez: diaDiez || "",
+                notificacionFallo: notificacionFallo || "",
+                fechaLimiteImpugnacion: fechaLimiteImpugnacion || "",
                 alerta: alertaStatus || "Verde",
                 cumplio: cumplioTermino || "PENDIENTE",
                 asignadoA: asignadoA || "",
@@ -1380,8 +1385,12 @@ window.resetForm = function () {
     // Clear calculated hidden fields if any (optional)
     const el7 = document.getElementById('diaSiete');
     const el10 = document.getElementById('diaDiez');
+    const elLim = document.getElementById('fechaLimiteImpugnacion');
+    const elNot = document.getElementById('notificacionFallo');
     if (el7) el7.value = "";
     if (el10) el10.value = "";
+    if (elLim) elLim.value = "";
+    if (elNot) elNot.value = "";
 
     // Trigger change to refresh calculations if necessary
     const fReparto = document.getElementById('fechaReparto');
@@ -1495,7 +1504,12 @@ window.updateMatrixStatistics = function () {
     tableSalidaBody.innerHTML = '';
     tableSalidaFoot.innerHTML = '';
 
-    const decisiones = ["CONCEDE", "NIEGA", "DECLARA IMPROCEDENTE", "IMPEDIMENTO", "HECHO SUPERADO", "RECHAZA", "RECHAZA POR CONOCIMIENTO PREVIO", "RETIRO VOLUNTARIO", "OTRO"];
+    const decisiones = [
+        "CONCEDE", "NIEGA", "DECLARA IMPROCEDENTE", "FALTA DE COMPETENCIA",
+        "SALIDA IMPEDIMENTOS", "HECHO SUPERADO", "RECHAZA",
+        "RECHAZA POR CONOCIMIENTO PREVIO (REMITE A OTROS DESPACHOS)",
+        "RETIRO VOLUNTARIO", "OTRAS SALIDAS NO EFECTIVAS"
+    ];
     let matrixSalida = Array(derechos.length).fill(0).map(() => Array(decisiones.length).fill(0));
 
     // Calculate Salida Stats
@@ -1638,14 +1652,16 @@ window.editTermino = function (id) {
             document.getElementById('accionado').value = item.accionado;
             document.getElementById('fechaReparto').value = item.fechaReparto || "";
             document.getElementById('fechaNotificacion').value = item.fechaNotificacion || "";
+            document.getElementById('notificacionFallo').value = item.notificacionFallo || "";
+            document.getElementById('fechaLimiteImpugnacion').value = item.fechaLimiteImpugnacion || "";
 
             // Populate New Fields
             document.getElementById('asignadoA').value = item.asignadoA || "";
             document.getElementById('ingreso').value = item.ingreso || "";
             document.getElementById('derecho').value = item.derecho || "";
             document.getElementById('decision').value = item.decision || "";
-            document.getElementById('genero').value = ""; // Default to "Seleccione..." on edit as requested
-            document.getElementById('impugno').value = ""; // Default to "Seleccione..." on edit as requested
+            document.getElementById('genero').value = item.genero || "";
+            document.getElementById('impugno').value = item.impugno || "";
 
             // Populate New Fields (IDs & Obs)
             document.getElementById('idAccionante').value = item.idAccionante || "";
@@ -1920,8 +1936,8 @@ window.exportToExcel = function () {
         // Headers Admin/Juzgado (Standard)
         ws_data.push([
             "Radicado", "Accionante", "Doc. Id. Accionante", "Accionado",
-            "Doc. Id. Accionado", "Juzgado", "Asignado", "F. Reparto",
-            "F. Fallo", "Límite (10)", "¿Cumplió?", "Alerta",
+            "Doc. Id. Accionado", "Juzgado", "Asignado", "F. Fallo",
+            "Notificación Fallo", "Límite (10)", "Límite Impugnación", "¿Cumplió?", "Alerta",
             "Decisión", "Derecho", "Género", "Impugnó"
         ]);
 
@@ -1936,7 +1952,9 @@ window.exportToExcel = function () {
                 item.asignadoA || '',
                 item.fechaReparto,
                 item.fechaNotificacion || '',
+                item.notificacionFallo || '',
                 item.diaDiez,
+                item.fechaLimiteImpugnacion || '',
                 item.cumplio,
                 item.alerta,
                 item.decision || '',
@@ -1983,14 +2001,29 @@ window.updateImpugnacionTables = function () {
     } else {
         impugnados.forEach(item => {
             const isChecked = item.enviado === true ? 'checked' : '';
+
+            // Logic for alert (Grace period of 2 business days after the limit)
+            let alertBadge = '<span class="badge badge-secondary" style="font-size: 0.75rem;">Pendiente</span>';
+            if (!item.enviado && item.fechaLimiteImpugnacion) {
+                try {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const graceDateStr = addBusinessDays(item.fechaLimiteImpugnacion, 2);
+                    if (todayStr > graceDateStr) {
+                        alertBadge = '<span class="badge badge-danger" style="font-size: 0.75rem; background-color: #dc3545; color: white;">VENCIDO (2 Días)</span>';
+                    }
+                } catch (e) { console.error("Error in alert logic", e); }
+            } else if (item.enviado) {
+                alertBadge = '<span class="badge badge-success" style="font-size: 0.75rem; background-color: #28a745; color: white;">ENVIADO</span>';
+            }
+
             const row = `
                 <tr>
                     <td style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;"><strong>${item.radicado}</strong></td>
-                    <td style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">${formatDate(item.fechaNotificacion)}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionante}">${item.accionante}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionado || '-'}">${item.accionado || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">${formatDate(item.fechaLimiteImpugnacion)}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
-                        <span class="badge badge-secondary">Pendiente</span>
+                        ${alertBadge}
                     </td>
                     <td style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
                         <input type="checkbox" ${isChecked} onchange="toggleEnviado('${item.id}', this.checked)" style="width: 18px; height: 18px; cursor: pointer;">
@@ -2003,18 +2036,32 @@ window.updateImpugnacionTables = function () {
 
     // Render Corte (No Impugnados)
     if (noImpugnados.length === 0) {
-        tableCorteBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color: #666;">No hay registros para envío a corte.</td></tr>';
+        tableCorteBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #666;">No hay registros para envío a corte.</td></tr>';
     } else {
         noImpugnados.forEach(item => {
             const isChecked = item.enviado === true ? 'checked' : '';
+
+            // Logic for alert (Grace period of 6 business days after the NOTIFICATION)
+            let alertBadge = '<span class="badge badge-secondary" style="font-size: 0.75rem;">Pendiente</span>';
+            if (!item.enviado && item.notificacionFallo) {
+                try {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const graceDateStr = addBusinessDays(item.notificacionFallo, 6);
+                    if (todayStr >= graceDateStr) {
+                        alertBadge = '<span class="badge badge-danger" style="font-size: 0.75rem; background-color: #dc3545; color: white;">VENCIDO (6 Días)</span>';
+                    }
+                } catch (e) { console.error("Error in alert logic (Corte)", e); }
+            } else if (item.enviado) {
+                alertBadge = '<span class="badge badge-success" style="font-size: 0.75rem; background-color: #28a745; color: white;">ENVIADO</span>';
+            }
+
             const row = `
                 <tr>
                     <td style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;"><strong>${item.radicado}</strong></td>
-                    <td style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">${formatDate(item.fechaNotificacion)}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionante}">${item.accionante}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.accionado || '-'}">${item.accionado || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
-                        <span class="badge badge-secondary">Pendiente</span>
+                        ${alertBadge}
                     </td>
                     <td style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
                         <input type="checkbox" ${isChecked} onchange="toggleEnviado('${item.id}', this.checked)" style="width: 18px; height: 18px; cursor: pointer;">
@@ -2163,7 +2210,9 @@ function renderRealtimeTable(terminos) {
                 <th>Doc. Id. Accion.</th>
                 <th id="colAsignado">Asignado</th>
                 <th id="colFallo">F. Fallo</th>
+                <th id="colNotificacionFallo">Notificación Fallo</th>
                 <th id="colDia10">Día 10</th>
+                <th id="colFechaLimiteImpugnacion">F. Límite Impugnación</th>
                 <th id="colCumplio">¿Cumplió?</th>
                 <th id="colAlerta">Alerta</th>
                 <th id="colDecision">Decisión</th>
@@ -2235,7 +2284,9 @@ function renderRealtimeTable(terminos) {
                     <td>${item.idAccionado || '-'}</td>
                     <td>${item.asignadoA || '-'}</td>
                     <td>${formatDate(item.fechaNotificacion)}</td>
+                    <td>${formatDate(item.notificacionFallo)}</td>
                     <td>${formatDate(item.diaDiez)}</td>
+                    <td>${formatDate(item.fechaLimiteImpugnacion)}</td>
                     <td>${cumplioHtml}</td>
                     <td>${badgeHtml}</td>
                     <td>${item.decision || '-'}</td>
@@ -2576,6 +2627,33 @@ function setupDateAutoCalc() {
                 }
             })
         );
+    }
+
+    const notificacionFalloInput = document.getElementById('notificacionFallo');
+    const impugnoSelect = document.getElementById('impugno');
+
+    if (notificacionFalloInput) {
+        ['change', 'blur', 'input'].forEach(evt =>
+            notificacionFalloInput.addEventListener(evt, function () {
+                const fNot = this.value;
+                if (fNot) {
+                    try {
+                        const limiteImp = addBusinessDays(fNot, 5);
+                        const elLim = document.getElementById('fechaLimiteImpugnacion');
+                        if (elLim) elLim.value = limiteImp;
+                    } catch (e) {
+                        console.error("Error calculating impugnacion limit", e);
+                    }
+                } else {
+                    const elLim = document.getElementById('fechaLimiteImpugnacion');
+                    if (elLim) elLim.value = "";
+                }
+            })
+        );
+    }
+
+    if (impugnoSelect) {
+        // Listener removed as per user request to always show the field
     }
 }
 

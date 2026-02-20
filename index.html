@@ -818,7 +818,9 @@
                                                 DECLARA
                                                 IMPROCEDENTE</th>
                                             <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
-                                                IMPEDIMENTO</th>
+                                                FALTA DE COMPETENCIA</th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
+                                                SALIDA IMPEDIMENTOS</th>
                                             <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">HECHO
                                                 SUPERADO</th>
                                             <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
@@ -827,9 +829,11 @@
                                             <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
                                                 RECHAZA
                                                 POR CONOCIMIENTO PREVIO</th>
-                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">RETIRO
-                                                VOLUNTARIO</th>
-                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">OTRO
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">
+                                                RETIRO VOLUNTARIO
+                                            </th>
+                                            <th style="border: 1px solid #ddd; padding: 5px; text-align: center;">OTRAS
+                                                SALIDAS NO EFECTIVAS
                                             </th>
                                             <th
                                                 style="border: 1px solid #ddd; padding: 5px; background: #333; color: white; text-align: center;">
@@ -887,14 +891,14 @@
                                     <tr style="background-color: #e9ecef;">
                                         <th style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">
                                             Radicado</th>
-                                        <th style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">
-                                            Fecha de Fallo</th>
                                         <th
                                             style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                             Accionante</th>
                                         <th
                                             style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                             Accionado</th>
+                                        <th style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">
+                                            F. Límite Impugnación</th>
                                         <th
                                             style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 1%; white-space: nowrap;">
                                             Alerta</th>
@@ -920,8 +924,6 @@
                                     <tr style="background-color: #e9ecef;">
                                         <th style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">
                                             Radicado</th>
-                                        <th style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">
-                                            Fecha de Fallo</th>
                                         <th
                                             style="border: 1px solid #ddd; padding: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                             Accionante</th>
@@ -984,7 +986,6 @@
                                 <div class="form-group">
                                     <label>Radicado</label>
                                     <div class="input-group-radicado">
-                                        <!-- Prefijo eliminado por solicitud usuario -->
                                         <input type="text" id="radicadoResto" class="form-control"
                                             placeholder="05266311000220260006300 (23 dígitos)" minlength="23"
                                             maxlength="23" pattern="\d{23}"
@@ -1024,11 +1025,8 @@
                                         oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                 </div>
 
-                                <!-- Row 2, Col 3: Spacer for Radicador -->
-                                <div class="form-group radicador-only-spacer" style="height: 1px; visibility: hidden;">
-                                </div>
+                                <!-- Spacer removed -->
 
-                                <!-- Row 2, Col 4: Ingreso -->
                                 <div class="form-group">
                                     <label>Tipo de Ingreso</label>
                                     <select id="ingreso" class="form-control">
@@ -1044,18 +1042,6 @@
                                     </select>
                                 </div>
 
-                                <div class="form-group">
-                                    <label>Observaciones</label>
-                                    <textarea id="observaciones" class="form-control" rows="1"
-                                        placeholder="Comentarios adicionales... (Opcional)"></textarea>
-                                </div>
-
-                                <!-- RESTORED ADMIN/JUZGADO FIELDS -->
-                                <div class="form-group" id="group-fechaFallo">
-                                    <label>Fecha Fallo (Sentencia)</label>
-                                    <input type="date" id="fechaNotificacion" class="form-control">
-                                </div>
-
                                 <div class="form-group" id="group-diaSiete">
                                     <label>Día Siete (Límite)</label>
                                     <input type="date" id="diaSiete" class="form-control" readonly
@@ -1066,15 +1052,6 @@
                                     <label>Día Diez (Límite)</label>
                                     <input type="date" id="diaDiez" class="form-control" readonly
                                         style="background-color: #f0f0f0;">
-                                </div>
-
-                                <div class="form-group" style="display:none;" id="group-alerta-container">
-                                    <label>Estado / Alerta</label>
-                                    <select id="alerta" class="form-control">
-                                        <option value="Verde">A Tiempo</option>
-                                        <option value="Amarillo">Alerta</option>
-                                        <option value="Rojo">Vencido</option>
-                                    </select>
                                 </div>
 
                                 <div class="form-group" id="group-asignadoA">
@@ -1105,23 +1082,6 @@
                                     </select>
                                 </div>
 
-                                <div class="form-group" id="group-decision">
-                                    <label>Decisión de Fondo</label>
-                                    <select id="decision" class="form-control">
-                                        <option value="">Pendiente...</option>
-                                        <option value="CONCEDE">CONCEDE</option>
-                                        <option value="NIEGA">NIEGA</option>
-                                        <option value="DECLARA IMPROCEDENTE">DECLARA IMPROCEDENTE</option>
-                                        <option value="IMPEDIMENTO">IMPEDIMENTO</option>
-                                        <option value="HECHO SUPERADO">HECHO SUPERADO</option>
-                                        <option value="RECHAZA">RECHAZA</option>
-                                        <option value="RECHAZA POR CONOCIMIENTO PREVIO">RECHAZA POR CONOCIMIENTO PREVIO
-                                        </option>
-                                        <option value="RETIRO VOLUNTARIO">RETIRO VOLUNTARIO</option>
-                                        <option value="OTRO">OTRO</option>
-                                    </select>
-                                </div>
-
                                 <div class="form-group" id="group-genero">
                                     <label>Perspectiva de Género</label>
                                     <select id="genero" class="form-control">
@@ -1131,6 +1091,35 @@
                                     </select>
                                 </div>
 
+                                <div class="form-group" id="group-fechaFallo">
+                                    <label>Fecha Fallo (Sentencia)</label>
+                                    <input type="date" id="fechaNotificacion" class="form-control">
+                                </div>
+
+                                <div class="form-group" id="group-decision">
+                                    <label>Decisión de Fondo</label>
+                                    <select id="decision" class="form-control">
+                                        <option value="">Pendiente...</option>
+                                        <option value="CONCEDE">CONCEDE</option>
+                                        <option value="NIEGA">NIEGA</option>
+                                        <option value="DECLARA IMPROCEDENTE">DECLARA IMPROCEDENTE</option>
+                                        <option value="FALTA DE COMPETENCIA">FALTA DE COMPETENCIA</option>
+                                        <option value="SALIDA IMPEDIMENTOS">SALIDA IMPEDIMENTOS</option>
+                                        <option value="HECHO SUPERADO">HECHO SUPERADO</option>
+                                        <option value="RECHAZA">RECHAZA</option>
+                                        <option value="RECHAZA POR CONOCIMIENTO PREVIO (REMITE A OTROS DESPACHOS)">
+                                            RECHAZA
+                                            POR CONOCIMIENTO PREVIO (REMITE A OTROS DESPACHOS)</option>
+                                        <option value="RETIRO VOLUNTARIO">RETIRO VOLUNTARIO</option>
+                                        <option value="OTRAS SALIDAS NO EFECTIVAS">OTRAS SALIDAS NO EFECTIVAS</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group" id="group-notificacionFallo">
+                                    <label>NOTIFICACION FALLO</label>
+                                    <input type="date" id="notificacionFallo" class="form-control">
+                                </div>
+
                                 <div class="form-group" id="group-impugno">
                                     <label>¿Impugnó?</label>
                                     <select id="impugno" class="form-control">
@@ -1138,6 +1127,18 @@
                                         <option value="NO">NO</option>
                                         <option value="SI">SÍ</option>
                                     </select>
+                                </div>
+
+                                <div class="form-group" id="group-fechaLimiteImpugnacion">
+                                    <label>Fecha Límite Impugnación</label>
+                                    <input type="date" id="fechaLimiteImpugnacion" class="form-control" readonly
+                                        style="background-color: #f0f0f0;">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Observaciones</label>
+                                    <textarea id="observaciones" class="form-control" rows="1"
+                                        placeholder="Comentarios adicionales... (Opcional)"></textarea>
                                 </div>
 
 
@@ -1250,7 +1251,9 @@
                                         <th>Doc. Id. Accionado</th>
                                         <th id="colAsignado">Asignado</th>
                                         <th id="colFallo">F. Fallo</th>
+                                        <th id="colNotificacionFallo">Notificación Fallo</th>
                                         <th id="colDia10">Día 10</th>
+                                        <th id="colFechaLimiteImpugnacion">F. Límite Impugnación</th>
                                         <th id="colCumplio">¿Cumplió?</th>
                                         <th id="colAlerta">Alerta</th>
                                         <th id="colDecision">Decisión</th>
