@@ -109,15 +109,16 @@ const transporter = nodemailer.createTransport({
 
 async function sendImpugnacionEmail(juzgadoEmail, record, type) {
     const isCorte = type === 'CORTE';
-    const subject = `🚨 ALERTA VENCIMIENTO ${isCorte ? 'CORTE' : 'SUPERIOR'} - Radicado: ${record.radicado}`;
+    const destinationName = isCorte ? 'LA CORTE' : 'EL SUPERIOR';
+    const subject = `🚨 ALERTA VENCIMIENTO - PARA ENVIAR A ${destinationName} - Radicado: ${record.radicado}`;
     const tableType = 'Tutela';
     const deadlineText = isCorte ? 'Vencimiento Corte (6d notificación)' : 'Vencimiento Superior (2d límite)';
 
     const htmlContent = `
     <div style="font-family: sans-serif; padding: 20px; border: 1px solid #dc3545; border-radius: 10px;">
-      <h2 style="color: #dc3545;">🚨 Alerta de Vencimiento de Términos</h2>
+      <h2 style="color: #dc3545;">🚨 Alerta de Vencimiento de Términos PARA ENVIAR A ${destinationName}</h2>
       <p>Estimado Despacho,</p>
-      <p>Se ha detectado un registro con el término de envío vencido para ${isCorte ? 'la CORTE' : 'el SUPERIOR'}:</p>
+      <p>Se ha detectado un registro con el término de envío vencido para ${destinationName}:</p>
       <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
         <tr style="background: #f8f9fa;"><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Tipo de Proceso:</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${tableType}</td></tr>
         <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Radicado:</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${record.radicado}</td></tr>
@@ -126,7 +127,7 @@ async function sendImpugnacionEmail(juzgadoEmail, record, type) {
         <tr style="background: #f8f9fa;"><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Estado Alerta:</td><td style="padding: 8px; border-bottom: 1px solid #eee; color: red; font-weight: bold;">${deadlineText}</td></tr>
       </table>
       <div style="margin-top: 25px; padding: 15px; background: #fff3cd; border-radius: 5px; border-left: 5px solid #dc3545;">
-        <strong>Acción requerida:</strong> Por favor ingrese al sistema <a href="https://sgcjuzgados.github.io/ENVIGADO/" style="color: #004884; font-weight: bold; text-decoration: underline;">SGC Envigado</a>, sección <b>IMPUGNACIÓN / ENVÍO CORTE</b>, para gestionar este registro y marcarlo como enviado.
+        <strong>Acción requerida:</strong> Por favor ingrese al sistema <a href="https://sgcjuzgados.github.io/CALIDAD/" style="color: #004884; font-weight: bold; text-decoration: underline;">SGC Envigado</a>, sección <b>IMPUGNACIÓN / ENVÍO CORTE</b>, para gestionar este registro y marcarlo como enviado.
       </div>
       <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
       <p style="font-size: 0.8rem; color: #999; text-align: center;">Generado automáticamente por el Sistema de Gestión de Calidad - Envigado.</p>
