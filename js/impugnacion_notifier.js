@@ -150,7 +150,7 @@ async function sendImpugnacionEmail(juzgadoEmail, record, type) {
 }
 
 async function runImpugnacionNotifier() {
-    console.log("🚀 Iniciando escaneo de alertas de Impugnación/Corte...");
+    console.log("🚀 Iniciando escaneo de alertas de Impugnacion/Corte...");
 
     // Fetch users
     const usersSnap = await db.collection('users').get();
@@ -165,7 +165,7 @@ async function runImpugnacionNotifier() {
     const todayStr = new Date().toISOString().split('T')[0];
 
     // Fetch recent tutelas (limit 300 to be safer, ordered by recent first)
-    console.log("🔍 Consultando los últimos 300 registros de Tutelas...");
+    console.log("🔍 Consultando los ultimos 300 registros de Tutelas...");
     const snapshot = await db.collection('tutelas')
         .orderBy('timestamp', 'desc')
         .limit(300)
@@ -231,7 +231,7 @@ async function runImpugnacionNotifier() {
         }
     }
 
-    console.log("🏁 Proceso de notificación de impugnaciones completado.");
+    console.log("🏁 Proceso de notificacion de impugnaciones completado.");
     process.exit(0);
 }
 
