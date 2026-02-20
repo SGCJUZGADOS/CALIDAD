@@ -117,9 +117,11 @@ async function runNotifier() {
 
         // Fetch pending records (those without notification date and where email hasn't been sent)
         // Note: Filtering by emailSent=false is more efficient than fetching all.
+        // Fetch recent records (limit 100)
+        // Note: Removing filters because Firestore skips documents if the field is missing
         const snapshot = await db.collection(coll)
-            .where('emailSent', '==', false)
-            .limit(50)
+            .orderBy('timestamp', 'desc')
+            .limit(100)
             .get();
 
         if (snapshot.empty) {
@@ -129,6 +131,9 @@ async function runNotifier() {
 
         for (const doc of snapshot.docs) {
             const record = doc.data();
+
+            // Skip if already marked as sent
+            if (record.emailSent === true) continue;
 
             // Skip if already has a notification date (it's closed)
             if (record.fechaNotificacion) continue;

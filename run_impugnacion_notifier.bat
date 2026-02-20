@@ -1,6 +1,6 @@
 @echo off
 REM Script para ejecutar las notificaciones de Impugnacion/Corte SGC Envigado
-REM Configurado para Windows Task Scheduler
+REM Configurado para Windows Task Scheduler (NO AGREGAR PAUSE)
 
 cd /d "%~dp0"
 echo [%date% %time%] Iniciando Notificador de Impugnaciones... >> notifier_log.txt

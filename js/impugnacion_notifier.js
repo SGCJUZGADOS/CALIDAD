@@ -163,10 +163,11 @@ async function runImpugnacionNotifier() {
 
     const todayStr = new Date().toISOString().split('T')[0];
 
-    // Fetch pending tutelas (max 50 per run to save quota)
+    // Fetch recent tutelas (limit 300 to be safer, ordered by recent first)
+    console.log("🔍 Consultando los últimos 300 registros de Tutelas...");
     const snapshot = await db.collection('tutelas')
-        .where('enviado', '!=', true)
-        .limit(50)
+        .orderBy('timestamp', 'desc')
+        .limit(300)
         .get();
 
     if (snapshot.empty) {
@@ -178,6 +179,10 @@ async function runImpugnacionNotifier() {
         const record = doc.data();
         const id = doc.id;
 
+        // Skip if already marked as sent/delivered in the app
+        if (record.enviado === true) continue;
+
+        const rad = record.radicado || "S/R";
         let shouldNotify = false;
         let alertType = "";
 
