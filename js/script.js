@@ -13,6 +13,12 @@ const firebaseConfig = {
 let db = null;
 let auth = null;
 let currentUser = {}; // Master User object
+
+// SECURITY ENHANCEMENTS: GLOBALS
+let failedAttempts = 0;
+let lockoutTimer = null;
+let idleTimer = null;
+const IDLE_TIME_LIMIT = 10 * 60 * 1000; // 10 minutes
 // DEFAULT MODULE
 let currentCollection = "tutelas";
 
@@ -589,18 +595,16 @@ window.ensureUsersExist = function () {
                 // Create new if not exists
                 userRef.set({
                     username: adm,
-                    password: '123', // Default only for new
+                    password: adm === 'admin' ? '123456*' : '123456',
                     role: role,
                     juzgado: jName,
-                    email: "" // Initialize email field for new users
+                    email: ""
                 });
             } else {
-                // Determine what to update (ONLY critical metadata, NOT password)
-                // We use merge:true to be safe. We REMOVED the email: "" line that was erasing data.
+                // Only role/juzgado enforcement, NO password forcing 
                 userRef.set({
-                    role: role, // Enforce role correctness
+                    role: role,
                     juzgado: jName
-                    // NO email reset here
                 }, { merge: true });
             }
         });
@@ -615,7 +619,7 @@ window.ensureUsersExist = function () {
                 if (!doc.exists) {
                     const userData = {
                         username: juz.user,
-                        password: '123',
+                        password: '123456', // Updated to 6 chars for Firebase Auth
                         juzgado: juz.name,
                         email: "", // Initial empty email
                         role: 'user'
@@ -641,44 +645,68 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Initialize UI FIRST
     initUI();
 
-    // 3. CHECK SESSION
-    try {
-        const savedUser = localStorage.getItem('sgc_user');
-        if (savedUser) {
-            currentUser = JSON.parse(savedUser);
+    // 2. CHECK SESSION (Firebase Auth Observer)
+    if (auth) {
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                console.log("Auth State Changed: Usuario logueado:", user.email);
 
-            // AUTO-CORRECT JUZGADO NAME ON RESTORE
-            if (typeof initialJuzgadosData !== 'undefined') {
-                const masterEntry = initialJuzgadosData.find(j => j.user === currentUser.username);
-                if (masterEntry && currentUser.juzgado !== masterEntry.name) {
-                    console.log("Auto-correcting Juzgado Name on Restore for:", currentUser.username);
-                    currentUser.juzgado = masterEntry.name;
-                    localStorage.setItem('sgc_user', JSON.stringify(currentUser));
-                }
+                // Fetch full data from Firestore
+                // We use the email to find the user or the UID if we want to be stricter
+                // For now, we'll try to find by username based on email (stripping domain)
+                const username = user.email.split('@')[0];
+
+                db.collection("users").doc(username).get().then((doc) => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        currentUser = userData;
+
+                        // SECURITY: Purge plaintext password if it still exists in Firestore
+                        if (userData.password) {
+                            console.log("Security: Purging plaintext password for account:", username);
+                            db.collection("users").doc(username).update({
+                                password: firebase.firestore.FieldValue.delete(),
+                                passwordPurgedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            }).catch(err => console.warn("Failed to purge password:", err));
+                        }
+
+                        // AUTO-CORRECT JUZGADO NAME ON RESTORE
+                        if (typeof initialJuzgadosData !== 'undefined') {
+                            const masterEntry = initialJuzgadosData.find(j => j.user === currentUser.username);
+                            if (masterEntry && currentUser.juzgado !== masterEntry.name) {
+                                console.log("Auto-correcting Juzgado Name on Restore for:", currentUser.username);
+                                currentUser.juzgado = masterEntry.name;
+                            }
+                        }
+
+                        if (!currentUser.role) currentUser.role = 'user';
+
+                        // UNIFIED ENTRY POINT
+                        if (typeof enterDashboard === 'function') {
+                            // Start Security Phase 2: Inactivity Monitor
+                            window.setupIdleTimeout();
+                            enterDashboard();
+                        }
+                    } else {
+                        console.error("User authenticated but document not found in Firestore:", username);
+                        // Fallback: create minimal user object if not in Firestore
+                        currentUser = { username: username, role: 'user', juzgado: 'Usuario Genérico' };
+                        enterDashboard();
+                    }
+                }).catch(e => {
+                    console.error("Error fetching user data from Firestore:", e);
+                });
+
+            } else {
+                console.log("Auth State Changed: Sin sesión activa.");
+                document.body.classList.remove('dashboard-active');
+                if (dashboard) dashboard.style.display = "none";
+                currentUser = {};
             }
-
-            // Patch for old sessions
-            if (!currentUser.role) currentUser.role = 'user';
-
-            console.log("Sesión restaurada desde LocalStorage:", currentUser.username);
-
-            try {
-                // UNIFIED ENTRY POINT
-                if (typeof enterDashboard === 'function') {
-                    enterDashboard();
-                } else {
-                    console.error("enterDashboard function not found!");
-                }
-            } catch (e) {
-                console.error("DEBUG: enterDashboard crashed:", e);
-            }
-        }
-    } catch (e) {
-        console.error("Error restaurando sesión", e);
-        localStorage.removeItem('sgc_user');
+        });
     }
 
-    // 2. Initialize Data Listeners (Moved AFTER session check to avoid race condition)
+    // Initialize Data Listeners
     if (db) {
         setupRealtimeUpdates();
         if (typeof window.ensureUsersExist === 'function') window.ensureUsersExist();
@@ -701,9 +729,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // SEED TEST DATA (TEMPORARY)
 function seedTestUsers() {
     const users = [
-        { id: 'radicador1', data: { username: 'radicador1', password: '123', role: 'radicador', juzgado: 'Oficina Reparto' } },
-        { id: 'juzgado01', data: { username: 'juzgado01', password: '123', role: 'user', juzgado: 'Juzgado 01 Civil' } },
-        { id: 'juzgado02', data: { username: 'juzgado02', password: '123', role: 'user', juzgado: 'Juzgado 02 Penal' } }
+        { id: 'radicador1', data: { username: 'radicador1', password: '123456', role: 'radicador', juzgado: 'Oficina Reparto' } },
+        { id: 'juzgado01', data: { username: 'juzgado01', password: '123456', role: 'user', juzgado: 'Juzgado 01 Civil' } },
+        { id: 'juzgado02', data: { username: 'juzgado02', password: '123456', role: 'user', juzgado: 'Juzgado 02 Penal' } }
     ];
 
     users.forEach(u => {
@@ -856,64 +884,142 @@ window.closeLoginModal = function () {
 }
 
 window.handleLogin = function (e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
+
+    // 0. THROTTLE CHECK
+    if (failedAttempts >= 5) {
+        showThrottleMessage();
+        return;
+    }
+
     const user = document.getElementById("username").value.toLowerCase().trim();
     const pass = document.getElementById("password").value;
 
     const loginModal = document.getElementById("loginModal");
     const dashboard = document.getElementById("dashboard");
 
-    // 1. CHECK FIRESTORE USERS
-    db.collection("users").doc(user).get().then((doc) => {
-        if (doc.exists) {
-            const userData = doc.data();
-            if (userData.password === pass) {
-                // SUCCESS
-                currentUser = userData;
-                // Patch role if missing (legacy)
-                if (!currentUser.role) currentUser.role = 'user';
+    // Helper for dummy email
+    const getEmail = (username) => {
+        if (username.includes('@')) return username;
+        return `${username}@sgc-envigado.local`;
+    };
 
-                // AUTO-CORRECT JUZGADO NAME FROM MASTER LIST
-                // This ensures old users get updated names to match Radicador assignment
-                if (typeof initialJuzgadosData !== 'undefined') {
-                    const masterEntry = initialJuzgadosData.find(j => j.user === currentUser.username);
-                    if (masterEntry) {
-                        console.log("Auto-correcting Juzgado Name for:", currentUser.username);
-                        currentUser.juzgado = masterEntry.name; // FORCE UPDATE
-                        // We also update Firestore in background to make it permanent
-                        db.collection("users").doc(currentUser.username).update({ juzgado: masterEntry.name })
-                            .catch(e => console.warn("Background update failed", e));
+    const email = getEmail(user);
+
+    console.log("Intentando login para:", email);
+
+    // 1. FIREBASE AUTH LOGIN
+    auth.signInWithEmailAndPassword(email, pass)
+        .then((userCredential) => {
+            // SUCCESS - Observer will handle dashboard entry
+            console.log("Login exitoso con Auth");
+            failedAttempts = 0; // Reset counter
+            alert(`Bienvenido accessando como ${user}`);
+            document.getElementById("loginForm").reset();
+        })
+        .catch((error) => {
+            failedAttempts++;
+            console.warn("Auth Login failed, checking Firestore fallback for migration...", error.code);
+            if (failedAttempts >= 5) startLockout();
+
+            // 2. FALLBACK: Migration logic (if user exists in Firestore but not in Auth)
+            db.collection("users").doc(user).get().then((doc) => {
+                if (doc.exists) {
+                    const userData = doc.data();
+                    if (userData.password === pass) {
+                        // Correct password in Firestore but not in Auth yet
+                        console.log("Usuario encontrado en Firestore. Migrando a Auth...");
+
+                        auth.createUserWithEmailAndPassword(email, pass)
+                            .then(() => {
+                                console.log("Usuario migrado exitosamente a Firebase Auth");
+                                failedAttempts = 0; // Reset counter
+                                alert(`Bienvenido. Su cuenta ha sido actualizada a una conexión segura.`);
+
+                                // SECURITY: Immediately purge password from Firestore
+                                db.collection("users").doc(user).update({
+                                    password: firebase.firestore.FieldValue.delete(),
+                                    passwordPurgedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                }).catch(e => console.warn("Failed to purge password after migration:", e));
+
+                                document.getElementById("loginForm").reset();
+                                // enterDashboard will be called by observer
+                            })
+                            .catch(regError => {
+                                console.error("Error migrando usuario:", regError);
+                                // Show specific error to help debug
+                                if (regError.code === 'auth/weak-password') {
+                                    // TRIGGER SELF-SERVICE MIGRATION UPDATE
+                                    console.log("Weak password detected. Opening self-service migration modal.");
+                                    openMigrationModal(user, pass);
+                                } else {
+                                    alert("Error de seguridad al migrar cuenta: " + regError.message);
+                                }
+                            });
+                    } else {
+                        failedAttempts++;
+                        alert("⛔ Contraseña incorrecta.");
+                        if (failedAttempts >= 5) startLockout();
+                    }
+                } else {
+                    // 3. FINAL FALLBACK: Hardcoded admin (legacy)
+                    if (user === "admin" && pass === "123456*") {
+                        // We should probably create this admin in Auth too
+                        auth.createUserWithEmailAndPassword(email, pass)
+                            .then(() => {
+                                alert("Modo Admin Local - Account created. Using password: 123456*");
+                                document.getElementById("loginForm").reset();
+                            })
+                            .catch((ae) => {
+                                // If already exists in Auth, try to sign in (though we already tried)
+                                console.warn("Fallback creation failed, likely already exists", ae);
+                                alert("Error: Use la contraseña 123456* para el administrador.");
+                            });
+                    } else {
+                        failedAttempts++;
+                        alert("Acceso Denegado. Credenciales incorrectas.");
+                        if (failedAttempts >= 5) startLockout();
                     }
                 }
+            }).catch(err => {
+                failedAttempts++;
+                console.error("Critical fallback error:", err);
+                if (failedAttempts >= 5) startLockout();
+            });
+        });
+}
 
-                localStorage.setItem('sgc_user', JSON.stringify(currentUser));
+/**
+ * SECURITY: Start a 2-minute lockout after too many failed attempts
+ */
+function startLockout() {
+    const btn = document.getElementById('loginSubmitBtn');
+    const msg = document.getElementById('loginThrottleMsg');
+    if (btn) btn.disabled = true;
+    if (msg) {
+        msg.style.display = 'block';
+        let timeLeft = 120; // 2 minutes
 
-                alert(`Bienvenido, ${currentUser.username} (${currentUser.role})`);
-                document.getElementById("loginForm").reset();
-                // Call unified dashboard entry
-                enterDashboard();
-                return;
-            } else {
-                alert("⛔ Contraseña incorrecta.");
+        lockoutTimer = setInterval(() => {
+            timeLeft--;
+            msg.innerHTML = `<i class="fas fa-clock"></i> Demasiados intentos fallidos. Bloqueo de seguridad activo: ${timeLeft}s`;
+
+            if (timeLeft <= 0) {
+                clearInterval(lockoutTimer);
+                failedAttempts = 0;
+                btn.disabled = false;
+                msg.style.display = 'none';
             }
-        } else {
-            // 2. FALLBACK: HARDCODED ADMIN (Si no existe en DB aún)
-            if (user === "admin" && pass === "123") {
-                currentUser = { username: 'admin', role: 'admin', juzgado: 'Administrador' };
-                localStorage.setItem('sgc_user', JSON.stringify(currentUser));
+        }, 1000);
+    }
+}
 
-                alert("Bienvenido, Admin (Modo Local).");
-                document.getElementById("loginForm").reset();
-                // Call unified dashboard entry
-                enterDashboard();
-            } else {
-                alert("⛔ Usuario no encontrado.");
-            }
-        }
-    }).catch((error) => {
-        console.error("Login Error:", error);
-        alert("Error de conexión: " + error.message);
-    });
+function showThrottleMessage() {
+    const msg = document.getElementById('loginThrottleMsg');
+    if (msg) {
+        msg.innerHTML = "⚠️ Seguridad: Por favor espere a que termine el tiempo de bloqueo.";
+        msg.style.display = 'block';
+    }
 }
 
 // ==========================================
@@ -1014,11 +1120,17 @@ window.toggleSubmenu = function (submenuId) {
 
 window.logout = function () {
     if (confirm("¿Seguro que desea cerrar sesión?")) {
-        document.body.classList.remove('dashboard-active');
-        dashboard.style.display = "none";
-        localStorage.removeItem('sgc_user'); // CLEAR SESSION
-        currentUser = {};
-        window.location.reload(); // Clean state
+        auth.signOut().then(() => {
+            console.log("Auth Sign Out Success");
+            document.body.classList.remove('dashboard-active');
+            if (dashboard) dashboard.style.display = "none";
+            currentUser = {};
+            // window.location.reload(); // Reload might be redundant but safe
+        }).catch(e => {
+            console.error("Error signing out:", e);
+            // Fallback: reload anyway
+            window.location.reload();
+        });
     }
 }
 
@@ -2280,7 +2392,6 @@ function renderRealtimeTable(terminos) {
                     <td><strong>${item.radicado}</strong></td>
                     <td>${item.accionante}</td>
                     <td>${item.idAccionante || '-'}</td>
-                    <td>${item.accionado || '-'}</td>
                     <td>${item.idAccionado || '-'}</td>
                     <td>${item.asignadoA || '-'}</td>
                     <td>${formatDate(item.fechaNotificacion)}</td>
@@ -3435,7 +3546,6 @@ window.checkRadicadoDesacato = function (input) {
     input.value = input.value.replace(/[^0-9]/g, '');
 };
 
-// 2. Search Logic (Query 'tutelas' collection)
 // 2. Search Logic (Query 'incidentes_desacato' first, then 'tutelas')
 window.isSearchingDesacato = false;
 
@@ -3692,3 +3802,267 @@ window.deleteDesacato = async function (id) {
 // We already called switchModule logic for logic, we can verify if we need to call loadDesacatosTable() there.
 // Yes, in step 686 I added a comment but didn't call it.
 // I should update switchModule to call window.loadDesacatosTable() if it exists.
+
+// ==========================================
+// PASSWORD REDESIGN & SECURITY (Firebase Auth)
+// ==========================================
+window.openChangePasswordModal = function () {
+    const modal = document.getElementById("changePasswordModal");
+    if (modal) modal.style.display = "block";
+};
+
+window.closeChangePasswordModal = function () {
+    const modal = document.getElementById("changePasswordModal");
+    if (modal) modal.style.display = "none";
+    const form = document.getElementById("changePasswordForm");
+    if (form) form.reset();
+};
+
+window.handleChangePassword = function (e) {
+    e.preventDefault();
+    const user = auth.currentUser;
+    if (!user) {
+        alert("Error: No hay sesión activa.");
+        return;
+    }
+
+    const currentPass = document.getElementById("currentPassword").value;
+    const newPass = document.getElementById("newOwnPassword").value;
+
+    if (newPass.length < 4) {
+        alert("La nueva contraseña debe tener al menos 4 caracteres.");
+        return;
+    }
+
+    // Para cambiar contraseña en Firebase se recomienda re-autenticar
+    const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPass);
+
+    user.reauthenticateWithCredential(credential).then(() => {
+        user.updatePassword(newPass).then(() => {
+            // Actualizar también en Firestore para mantener coherencia (opcional pero recomendado si se usa el fallback)
+            const username = user.email.split('@')[0];
+            db.collection("users").doc(username).update({ password: newPass })
+                .catch(err => console.warn("Firestore sync error:", err));
+
+            alert("✅ Contraseña actualizada exitosamente.");
+            closeChangePasswordModal();
+        }).catch(error => {
+            alert("Error al actualizar contraseña: " + error.message);
+        });
+    }).catch(error => {
+        alert("Contraseña actual incorrecta o error de seguridad.");
+    });
+};
+
+// ==========================================
+// ADMIN RE-AUTHENTICATION (Security Layer)
+// ==========================================
+window.closeReauthModal = function () {
+    const modal = document.getElementById('reauthModal');
+    if (modal) modal.style.display = 'none';
+    const form = document.getElementById('reauthForm');
+    if (form) form.reset();
+};
+
+/**
+ * Prompts the admin for their password before sensitive actions.
+ * @returns {Promise<boolean>} Resolves to true if verification succeeded.
+ */
+window.requireAdminVerify = function () {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('reauthModal');
+        const form = document.getElementById('reauthForm');
+        const passInput = document.getElementById('reauthPassword');
+
+        if (!modal || !form || !passInput) {
+            console.error("Reauth modal components missing");
+            resolve(false);
+            return;
+        }
+
+        modal.style.display = 'block';
+        passInput.focus();
+
+        const handleSubmit = (e) => {
+            e.preventDefault();
+            const password = passInput.value;
+            const user = auth.currentUser;
+
+            if (!user) {
+                alert("Error: Sesión no válida.");
+                cleanup();
+                resolve(false);
+                return;
+            }
+
+            // Verify using Firebase Re-auth logic
+            const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+
+            user.reauthenticateWithCredential(credential)
+                .then(() => {
+                    console.log("Re-auth success");
+                    cleanup();
+                    resolve(true);
+                })
+                .catch((err) => {
+                    console.warn("Re-auth failed", err);
+                    alert("⚠️ Contraseña de administrador incorrecta. Verificación fallida.");
+                    passInput.value = '';
+                    passInput.focus();
+                });
+        };
+
+        const cleanup = () => {
+            form.removeEventListener('submit', handleSubmit);
+            closeReauthModal();
+        };
+
+        form.addEventListener('submit', handleSubmit);
+
+        // Handle explicit cancel (if modal has close button or ESC)
+        // Note: For simplicity, the Cancel button in the HTML calls closeReauthModal.
+        // We need a way to detect that and resolve(false).
+        window.cancelReauth = () => {
+            cleanup();
+            resolve(false);
+        };
+    });
+};
+
+// ==========================================
+// SELF-SERVICE MIGRATION UPDATE
+// ==========================================
+window.openMigrationModal = function (username, currentPassword) {
+    const modal = document.getElementById('migrationUpdateModal');
+    if (modal) {
+        document.getElementById('migrationUser').value = username;
+        document.getElementById('migrationOldPass').value = currentPassword;
+        modal.style.display = 'block';
+    }
+};
+
+window.closeMigrationModal = function () {
+    const modal = document.getElementById('migrationUpdateModal');
+    if (modal) modal.style.display = 'none';
+    const form = document.getElementById('migrationUpdateForm');
+    if (form) form.reset();
+};
+
+window.handleMigrationUpdate = function (e) {
+    e.preventDefault();
+    const username = document.getElementById('migrationUser').value;
+    const oldPass = document.getElementById('migrationOldPass').value; // We don't really need it but kept for context
+    const newPass = document.getElementById('migrationNewPass').value;
+    const confirmPass = document.getElementById('migrationConfirmPass').value;
+
+    // 1. Basic validation
+    if (newPass !== confirmPass) {
+        alert("Las contraseñas no coinciden.");
+        return;
+    }
+
+    // 2. COMPLEXITY VALIDATION
+    // Min 6 chars, 1 uppercase, 1 special char
+    const hasUpperCase = /[A-Z]/.test(newPass);
+    const hasSpecialChar = /[!@#$%^&*()\-=_+,.?":{}|<>]/.test(newPass);
+
+    if (newPass.length < 6) {
+        alert("La contraseña debe tener al menos 6 caracteres.");
+        return;
+    }
+    if (!hasUpperCase) {
+        alert("La contraseña debe incluir al menos una letra MAYÚSCULA.");
+        return;
+    }
+    if (!hasSpecialChar) {
+        alert("La contraseña debe incluir al menos un CARÁCTER ESPECIAL (ej: ! @ # $ % ^ & * + - _ =)");
+        return;
+    }
+
+    const email = `${username}@sgc-envigado.local`;
+
+    console.log("Procesando actualización de seguridad y migración para:", username);
+
+    // 3. Create account in Firebase Auth with NEW password
+    auth.createUserWithEmailAndPassword(email, newPass)
+        .then(() => {
+            console.log("Migración exitosa con nueva clave");
+            alert("✅ ¡Seguridad Actualizada! Su cuenta ha sido migrada con éxito.");
+
+            // 4. Purge old password from Firestore
+            db.collection("users").doc(username).update({
+                password: firebase.firestore.FieldValue.delete(),
+                passwordPurgedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                migrationType: 'self-service-update'
+            }).catch(err => console.warn("Error purgando clave antigua:", err));
+
+            closeMigrationModal();
+            // enterDashboard will be handled by observer
+        })
+        .catch(error => {
+            console.error("Error en migración auto-servicio:", error);
+            alert("No se pudo completar la migración: " + error.message);
+        });
+};
+
+// ==========================================
+// SECURITY: IDLE TIMEOUT (10 MINUTES)
+// ==========================================
+window.setupIdleTimeout = function () {
+    console.log("Iniciando protector de sesión (10 min inactividad)...");
+
+    const resetTimer = () => {
+        if (!auth.currentUser) return; // Only if logged in
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => {
+            console.warn("Sesión expirada por inactividad.");
+            alert("⚠️ Su sesión ha expirado por inactividad de 10 minutos.");
+            window.logout();
+        }, IDLE_TIME_LIMIT);
+    };
+
+    // Events to track activity
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    activityEvents.forEach(evt => {
+        document.addEventListener(evt, resetTimer, true);
+    });
+
+    resetTimer(); // Start initially
+};
+
+// ==========================================
+// SECURITY: PASSWORD STRENGTH METER
+// ==========================================
+window.updateStrengthMeter = function (inputId, meterId) {
+    const pass = document.getElementById(inputId).value;
+    const meter = document.getElementById(meterId);
+    if (!meter) return;
+
+    if (!pass) {
+        meter.style.display = 'none';
+        return;
+    }
+
+    meter.style.display = 'block';
+    let strength = 0;
+
+    // Criteria
+    if (pass.length >= 6) strength++;
+    if (/[A-Z]/.test(pass)) strength++;
+    if (/[!@#$%^&*()\-=_+,.?":{}|<>]/.test(pass)) strength++;
+    if (/[0-9]/.test(pass)) strength++;
+
+    meter.className = 'strength-meter'; // Reset
+    const text = meter.querySelector('.strength-text');
+
+    if (strength <= 1) {
+        meter.classList.add('strength-weak');
+        text.innerText = "Muy Débil - Agregue mayúsculas y símbolos";
+    } else if (strength === 2 || strength === 3) {
+        meter.classList.add('strength-medium');
+        text.innerText = "Media - Casi segura";
+    } else {
+        meter.classList.add('strength-strong');
+        text.innerText = "Fuerte - Cuenta protegida";
+    }
+};

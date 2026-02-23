@@ -342,8 +342,9 @@
                             <input type="password" id="password" placeholder="Ingrese su contraseña" required>
                         </div>
                     </div>
-                    <button type="submit" class="btn-premium-login">Ingresar</button>
+                    <button type="submit" class="btn-premium-login" id="loginSubmitBtn">Ingresar</button>
                 </form>
+                <div id="loginThrottleMsg" class="throttle-message"></div>
             </div>
         </div>
 
@@ -1298,9 +1299,83 @@
                     <div class="form-group">
                         <label>Nueva Contraseña</label>
                         <input type="password" id="newOwnPassword" class="form-control" required minlength="4"
-                            placeholder="Nueva contraseña">
+                            placeholder="Nueva contraseña"
+                            oninput="updateStrengthMeter('newOwnPassword', 'ownStrength')">
+                        <div id="ownStrength" class="strength-meter">
+                            <div class="strength-bar"></div>
+                            <small class="strength-text"></small>
+                        </div>
                     </div>
                     <button type="submit" class="btn-primary" style="width:100%">Actualizar</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL VERIFICACIÓN ADMIN (RE-AUTH) -->
+        <div id="reauthModal" class="modal">
+            <div class="modal-content login-content" style="max-width: 400px; border: 2px solid #D4AF37;">
+                <div class="login-header">
+                    <h3><i class="fas fa-shield-alt"></i> Verificación de Seguridad</h3>
+                    <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">Por su seguridad, confirme su contraseña
+                        para realizar esta acción.</p>
+                </div>
+                <form id="reauthForm">
+                    <div class="form-group">
+                        <label>Contraseña de Administrador</label>
+                        <input type="password" id="reauthPassword" class="form-control" required
+                            placeholder="Ingrese su contraseña">
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button type="button" class="btn-secondary" onclick="cancelReauth()"
+                            style="flex:1">Cancelar</button>
+                        <button type="submit" class="btn-primary" id="loginSubmitBtn">ENTRAR AL SISTEMA</button>
+                </form>
+                <div id="loginThrottleMsg" class="throttle-message"></div>
+            </div>
+        </div>
+        </div>
+
+        <!-- MODAL ACTUALIZACIÓN DE SEGURIDAD (MIGRACIÓN) -->
+        <div id="migrationUpdateModal" class="modal">
+            <div class="modal-content login-content" style="max-width: 450px; border: 2px solid #007bff;">
+                <div class="login-header">
+                    <h3><i class="fas fa-user-shield"></i> Actualización de Seguridad</h3>
+                    <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">Su cuenta requiere una contraseña más
+                        segura para completar la migración.</p>
+                </div>
+                <div
+                    style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; border-left: 5px solid #007bff; color: #1e293b;">
+                    <strong style="display: block; margin-bottom: 8px; color: #007bff; font-weight: 800;">Nuevos
+                        Requisitos Obligatorios:</strong>
+                    <ul style="margin: 0; padding-left: 20px; line-height: 1.6; font-weight: 700;">
+                        <li>Mínimo 6 caracteres.</li>
+                        <li>Al menos una letra MAYÚSCULA.</li>
+                        <li>Al menos un CARÁCTER ESPECIAL (ej: ! @ # $ % ^ & * + - _ =).</li>
+                    </ul>
+                </div>
+                <form id="migrationUpdateForm" onsubmit="handleMigrationUpdate(event)">
+                    <input type="hidden" id="migrationUser">
+                    <input type="hidden" id="migrationOldPass">
+                    <div class="form-group">
+                        <label>Nueva Contraseña Segura</label>
+                        <input type="password" id="migrationNewPass" class="form-control" required
+                            placeholder="Ingrese su nueva contraseña"
+                            oninput="updateStrengthMeter('migrationNewPass', 'migrationStrength')">
+                        <div id="migrationStrength" class="strength-meter">
+                            <div class="strength-bar"></div>
+                            <small class="strength-text"></small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Confirmar Contraseña</label>
+                        <input type="password" id="migrationConfirmPass" class="form-control" required
+                            placeholder="Repita la contraseña">
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="button" class="btn-secondary" onclick="closeMigrationModal()"
+                            style="flex:1">Cancelar</button>
+                        <button type="submit" class="btn-primary" style="flex:1">Actualizar y Entrar</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -1388,6 +1463,76 @@
                 }
             }
         </script>
+        <style>
+            input:focus {
+                outline: none;
+                border-color: #007bff;
+                box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
+            }
+
+            /* STRENGTH METER STYLES */
+            .strength-meter {
+                margin-top: 5px;
+                height: 15px;
+                width: 100%;
+                display: none;
+            }
+
+            .strength-bar {
+                height: 4px;
+                border-radius: 2px;
+                width: 0;
+                transition: width 0.3s ease, background-color 0.3s ease;
+                background-color: #ddd;
+            }
+
+            .strength-text {
+                font-size: 0.75rem;
+                font-weight: bold;
+                margin-top: 2px;
+                display: block;
+            }
+
+            .strength-weak .strength-bar {
+                width: 33%;
+                background-color: #dc3545;
+            }
+
+            .strength-weak .strength-text {
+                color: #dc3545;
+            }
+
+            .strength-medium .strength-bar {
+                width: 66%;
+                background-color: #ffc107;
+            }
+
+            .strength-medium .strength-text {
+                color: #d39e00;
+            }
+
+            .strength-strong .strength-bar {
+                width: 100%;
+                background-color: #28a745;
+            }
+
+            .strength-strong .strength-text {
+                color: #28a745;
+            }
+
+            .throttle-message {
+                color: #dc3545;
+                font-weight: bold;
+                font-size: 0.9rem;
+                text-align: center;
+                margin-top: 10px;
+                display: none;
+                padding: 10px;
+                border: 1px dashed #dc3545;
+                border-radius: 5px;
+                background: #fff5f5;
+            }
+        </style>
         <!-- Video Modal -->
         <div id="videoModal" class="modal" style="display: none; align-items: center; justify-content: center;">
             <div class="modal-content"
