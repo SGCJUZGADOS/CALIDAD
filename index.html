@@ -342,7 +342,8 @@
                             <input type="password" id="password" placeholder="Ingrese su contraseña" required>
                         </div>
                     </div>
-                    <button type="submit" class="btn-premium-login" id="loginSubmitBtn">Ingresar</button>
+                    <button type="submit" class="btn-premium btn-premium-blue" id="loginSubmitBtn"
+                        style="width:100%; justify-content:center;">INGRESAR AL SISTEMA</button>
                 </form>
                 <div id="loginThrottleMsg" class="throttle-message"></div>
             </div>
@@ -1306,7 +1307,10 @@
                             <small class="strength-text"></small>
                         </div>
                     </div>
-                    <button type="submit" class="btn-primary" style="width:100%">Actualizar</button>
+                    <button type="submit" class="btn-premium btn-premium-green"
+                        style="width:100%; justify-content:center;">
+                        <i class="fas fa-check-circle"></i> ACTUALIZAR CONTRASEÑA
+                    </button>
                 </form>
             </div>
         </div>
@@ -1326,9 +1330,11 @@
                             placeholder="Ingrese su contraseña">
                     </div>
                     <div style="display: flex; gap: 10px; margin-top: 15px;">
-                        <button type="button" class="btn-secondary" onclick="cancelReauth()"
-                            style="flex:1">Cancelar</button>
-                        <button type="submit" class="btn-primary" id="loginSubmitBtn">ENTRAR AL SISTEMA</button>
+                        <button type="button" class="btn-premium btn-premium-gray" onclick="cancelReauth()"
+                            style="flex:1; justify-content:center;">Cancelar</button>
+                        <button type="submit" class="btn-premium btn-premium-blue" id="adminVerifyBtn"
+                            style="flex:1; justify-content:center;">VERIFICAR</button>
+                    </div>
                 </form>
                 <div id="loginThrottleMsg" class="throttle-message"></div>
             </div>
@@ -1372,9 +1378,12 @@
                             placeholder="Repita la contraseña">
                     </div>
                     <div style="display: flex; gap: 10px; margin-top: 20px;">
-                        <button type="button" class="btn-secondary" onclick="closeMigrationModal()"
-                            style="flex:1">Cancelar</button>
-                        <button type="submit" class="btn-primary" style="flex:1">Actualizar y Entrar</button>
+                        <button type="button" class="btn-premium btn-premium-gray" onclick="closeMigrationModal()"
+                            style="flex:1; justify-content:center;">Cancelar</button>
+                        <button type="submit" class="btn-premium btn-premium-green"
+                            style="flex:1; justify-content:center;">
+                            <i class="fas fa-rocket"></i> ACTUALIZAR Y ENTRAR
+                        </button>
                     </div>
                 </form>
             </div>
