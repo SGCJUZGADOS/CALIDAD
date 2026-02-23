@@ -683,6 +683,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         // UNIFIED ENTRY POINT
                         if (typeof enterDashboard === 'function') {
+                            // SECURITY: Check if password change is mandatory
+                            if (userData.requiresPasswordChange) {
+                                console.warn("Forzando cambio de clave obligatorio para:", username);
+                                alert("🔒 Por seguridad, debe actualizar su contraseña temporal antes de continuar.");
+                                window.openMigrationModal(username, "");
+                                return; // Block entry
+                            }
+
                             // Start Security Phase 2: Inactivity Monitor
                             window.setupIdleTimeout();
                             enterDashboard();
@@ -927,6 +935,13 @@ window.handleLogin = function (e) {
                 if (doc.exists) {
                     const userData = doc.data();
                     if (userData.password === pass) {
+                        // Check if we should force the update modal immediately
+                        if (userData.requiresPasswordChange) {
+                            console.log("Detectado cambio obligatorio en login...");
+                            window.openMigrationModal(user, pass);
+                            return;
+                        }
+
                         // Correct password in Firestore but not in Auth yet
                         console.log("Usuario encontrado en Firestore. Migrando a Auth...");
 
@@ -3839,9 +3854,12 @@ window.handleChangePassword = function (e) {
 
     user.reauthenticateWithCredential(credential).then(() => {
         user.updatePassword(newPass).then(() => {
-            // Actualizar también en Firestore para mantener coherencia (opcional pero recomendado si se usa el fallback)
+            // Actualizar también en Firestore para mantener coherencia
             const username = user.email.split('@')[0];
-            db.collection("users").doc(username).update({ password: newPass })
+            db.collection("users").doc(username).update({
+                password: newPass,
+                requiresPasswordChange: false // Reset flag if it was set
+            })
                 .catch(err => console.warn("Firestore sync error:", err));
 
             alert("✅ Contraseña actualizada exitosamente.");
@@ -3989,11 +4007,12 @@ window.handleMigrationUpdate = function (e) {
             console.log("Migración exitosa con nueva clave");
             alert("✅ ¡Seguridad Actualizada! Su cuenta ha sido migrada con éxito.");
 
-            // 4. Purge old password from Firestore
+            // 4. Purge old password and reset flag
             db.collection("users").doc(username).update({
                 password: firebase.firestore.FieldValue.delete(),
                 passwordPurgedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                migrationType: 'self-service-update'
+                migrationType: 'self-service-update',
+                requiresPasswordChange: false // Reset flag
             }).catch(err => console.warn("Error purgando clave antigua:", err));
 
             closeMigrationModal();

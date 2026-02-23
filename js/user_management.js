@@ -49,6 +49,7 @@ window.handleCreateUser = function (e) {
             return;
         }
         userData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        userData.requiresPasswordChange = true; // FORCE CHANGE ON FIRST LOGIN
         db.collection("users").doc(username).set(userData).then(() => {
             alert("✅ Usuario creado exitosamente.\nPodrá ingresar inmediatamente; el sistema creará su cuenta de seguridad al primer acceso.");
             resetUserForm();
