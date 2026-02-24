@@ -319,13 +319,12 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    /* Evita que el contenido interno empuje la ventana */
-    padding: 50px;
+    padding: 0;
+    /* REMOVED padding to allow sticky header to reach edges */
     background: #f8fafc;
     transition: all 0.3s ease;
     min-width: 0;
     width: 100%;
-    /* Prevents overflow in flexbox */
 }
 
 .data-form-card,
@@ -346,14 +345,16 @@
     padding: 20px 50px;
     background: white;
     color: #333;
-    /* Fix invisible white text */
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 2px solid #e2e8f0;
     position: sticky;
     top: 0;
     z-index: 1000;
-    min-height: 200px;
-    /* Incrementado para dar más aire al título */
+    width: 100%;
+    /* Ensure full width */
+    min-height: 180px;
     transition: all 0.4s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    /* Added shadow for depth on scroll */
 }
 
 #welcomeMsg {
@@ -586,4 +587,10 @@ html:has(body.dashboard-active) {
         display: inline-block;
         opacity: 1;
     }
+}
+
+/* Base style for module sections within the dashboard */
+.module-section {
+    padding: 40px 50px;
+    width: 100%;
 }

@@ -429,7 +429,7 @@
                 </header>
 
                 <!-- Statistics Section (Hidden by default) -->
-                <div id="statistics-section" style="display: none; padding: 20px;">
+                <div id="statistics-section" class="module-section" style="display: none;">
                     <!-- Content preserved -->
                     <div class="card" style="padding: 20px;">
                         <h3 style="color: #004884; margin-bottom: 20px;">Estadísticas de Gestión</h3>
@@ -513,7 +513,7 @@
                 </div>
 
                 <!-- NEW USER MANAGEMENT SECTION -->
-                <div id="user-management-section" style="display: none; padding: 20px;">
+                <div id="user-management-section" class="module-section" style="display: none;">
                     <div class="card" style="padding: 30px; background: white; border-radius: 20px;">
                         <h2 style="color: #1a237e; margin-bottom: 25px;"><i class="fas fa-users-cog"></i> Gestión de
                             Usuarios</h2>
@@ -600,7 +600,7 @@
                 </div>
 
                 <!-- SECCIÓN INCIDENTES DE DESACATO -->
-                <div id="desacatos-section" class="module-section" style="display: none; padding: 20px;">
+                <div id="desacatos-section" class="module-section" style="display: none;">
                     <div class="card" style="padding: 30px; background: white; border-radius: 20px;">
                         <h2 class="mb-4 text-primary" style="color: #1a237e;"><i
                                 class="fas fa-exclamation-circle me-2"></i> Incidentes de Desacato</h2>
@@ -669,12 +669,20 @@
                                     <input type="date" id="desFechaSolicitud" class="form-control">
                                 </div>
                                 <div class="col-md-6">
+                                    <label class="form-label fw-bold text-muted small">FECHA REQUERIMIENTO
+                                        INCIDENTE</label>
+                                    <input type="date" id="desRequerimiento" class="form-control" readonly
+                                        style="background-color: #f0f0f0;">
+                                </div>
+                                <div class="col-md-6">
                                     <label class="form-label fw-bold text-muted small">Fecha Apertura Incidente</label>
-                                    <input type="date" id="desFechaApertura" class="form-control">
+                                    <input type="date" id="desFechaApertura" class="form-control" readonly
+                                        style="background-color: #f0f0f0;">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold text-muted small">Fecha Sanción</label>
-                                    <input type="date" id="desFechaSancion" class="form-control">
+                                    <input type="date" id="desFechaSancion" class="form-control" readonly
+                                        style="background-color: #f0f0f0;">
                                 </div>
                                 <div
                                     class="col-md-12 text-center mt-4 pt-3 border-top display-flex justify-content-center gap-3">
@@ -703,6 +711,7 @@
                                             <th>Accionado</th>
                                             <th>Decisión (Tutela)</th>
                                             <th>FECHA SOLICITUD DESACATO</th>
+                                            <th>FECHA REQUERIMIENTO INCIDENTE</th>
                                             <th>FECHA APERTURA INCIDENTE DE DESACATO</th>
                                             <th>FECHA SANCION</th>
                                             <th style="border-top-right-radius: 10px; width: 80px; text-align: center;">
@@ -712,7 +721,7 @@
                                     <tbody id="desacatosTableBody">
                                         <!-- Se llenará con JS o manualmente por ahora -->
                                         <tr>
-                                            <td colspan="6" class="text-center text-muted">No hay registros de desacato
+                                            <td colspan="10" class="text-center text-muted">No hay registros de desacato
                                                 aún.</td>
                                         </tr>
                                     </tbody>
@@ -723,7 +732,7 @@
                 </div>
 
                 <!-- NEW MATRIX STATISTICS SECTION -->
-                <div id="estadisticas-tutelas-section" style="display: none; padding: 20px;">
+                <div id="estadisticas-tutelas-section" class="module-section" style="display: none;">
                     <div class="card" style="padding: 20px; margin-bottom: 20px;">
                         <div style="display:flex; justify-content:center; align-items:center;">
                             <h3
@@ -882,7 +891,7 @@
                 </div>
 
                 <!-- NEW IMPUGNACION / ENVIO CORTE SECTION -->
-                <div id="impugnacion-section" style="display: none; padding: 20px;">
+                <div id="impugnacion-section" class="module-section" style="display: none;">
                     <div class="card" style="padding: 20px; margin-bottom: 20px;">
                         <h3 style="color: #004884; margin-bottom: 20px; text-transform: uppercase; font-weight: 800;">
                             ENVIO AL SUPERIOR</h3>
@@ -948,7 +957,7 @@
                     </div>
                 </div>
 
-                <div class="dash-container" id="main-dash-container">
+                <div class="dash-container module-section" id="main-dash-container">
                     <!-- Data Entry Form -->
                     <div class="data-form-card">
                         <h3

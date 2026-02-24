@@ -2407,6 +2407,7 @@ function renderRealtimeTable(terminos) {
                     <td><strong>${item.radicado}</strong></td>
                     <td>${item.accionante}</td>
                     <td>${item.idAccionante || '-'}</td>
+                    <td>${item.accionado || '-'}</td>
                     <td>${item.idAccionado || '-'}</td>
                     <td>${item.asignadoA || '-'}</td>
                     <td>${formatDate(item.fechaNotificacion)}</td>
@@ -2780,6 +2781,54 @@ function setupDateAutoCalc() {
 
     if (impugnoSelect) {
         // Listener removed as per user request to always show the field
+    }
+
+    const desFechaSolicitudInput = document.getElementById('desFechaSolicitud');
+    if (desFechaSolicitudInput) {
+        ['change', 'blur', 'input'].forEach(evt =>
+            desFechaSolicitudInput.addEventListener(evt, function () {
+                const fSol = this.value;
+                if (fSol) {
+                    // --- SECURITY CHECK: prevent freeze during typing ---
+                    // Only process if year is 4 digits and reasonable (>= 2000)
+                    const year = parseInt(fSol.split('-')[0], 10);
+                    if (isNaN(year) || year < 2000 || fSol.split('-')[0].length < 4) {
+                        // Clear fields while typing invalid year
+                        const elReq = document.getElementById('desRequerimiento');
+                        const elApe = document.getElementById('desFechaApertura');
+                        const elSan = document.getElementById('desFechaSancion');
+                        if (elReq) elReq.value = "";
+                        if (elApe) elApe.value = "";
+                        if (elSan) elSan.value = "";
+                        return;
+                    }
+
+                    try {
+                        const requerimiento = addBusinessDays(fSol, 2);
+                        const apertura = addBusinessDays(requerimiento, 1);
+                        const sancion = addBusinessDays(requerimiento, 5);
+
+                        const elReq = document.getElementById('desRequerimiento');
+                        const elApe = document.getElementById('desFechaApertura');
+                        const elSan = document.getElementById('desFechaSancion');
+
+                        if (elReq) elReq.value = requerimiento;
+                        if (elApe) elApe.value = apertura;
+                        if (elSan) elSan.value = sancion;
+                    } catch (e) {
+                        console.error("Error calculating desacato dates", e);
+                    }
+                } else {
+                    // Clear fields if source is empty
+                    const elReq = document.getElementById('desRequerimiento');
+                    const elApe = document.getElementById('desFechaApertura');
+                    const elSan = document.getElementById('desFechaSancion');
+                    if (elReq) elReq.value = "";
+                    if (elApe) elApe.value = "";
+                    if (elSan) elSan.value = "";
+                }
+            })
+        );
     }
 }
 
@@ -3631,6 +3680,7 @@ window.searchRadicadoDesacatoBtn = async function () {
 
         // Limpiar campos de fecha opcionales (NO intentar acceder a desFechaReparto)
         document.getElementById('desFechaSolicitud').value = '';
+        document.getElementById('desRequerimiento').value = '';
         document.getElementById('desFechaApertura').value = '';
         document.getElementById('desFechaSancion').value = '';
 
@@ -3681,6 +3731,7 @@ document.getElementById('formDesacato').addEventListener('submit', async functio
         radicado: radicado,
         // fechaReparto removed
         fechaSolicitud: document.getElementById('desFechaSolicitud').value,
+        requerimientoIncidente: document.getElementById('desRequerimiento').value,
         fechaApertura: document.getElementById('desFechaApertura').value,
         fechaSancion: document.getElementById('desFechaSancion').value,
         accionante: document.getElementById('desAccionante').value.trim(),
@@ -3730,6 +3781,7 @@ window.editDesacato = async function (id) {
 
         // Editable Dates
         document.getElementById('desFechaSolicitud').value = data.fechaSolicitud || '';
+        document.getElementById('desRequerimiento').value = data.requerimientoIncidente || '';
         document.getElementById('desFechaApertura').value = data.fechaApertura || '';
         document.getElementById('desFechaSancion').value = data.fechaSancion || '';
 
@@ -3747,7 +3799,7 @@ window.editDesacato = async function (id) {
 // 6. Load Table Logic
 window.loadDesacatosTable = async function () {
     const tbody = document.getElementById('desacatosTableBody');
-    tbody.innerHTML = '<tr><td colspan="9" class="text-center">Cargando...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="text-center">Cargando...</td></tr>';
 
     try {
         const snapshot = await db.collection('incidentes_desacato')
@@ -3758,7 +3810,7 @@ window.loadDesacatosTable = async function () {
         tbody.innerHTML = '';
 
         if (snapshot.empty) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No hay registros de desacato.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No hay registros de desacato.</td></tr>';
             return;
         }
 
@@ -3777,6 +3829,7 @@ window.loadDesacatosTable = async function () {
                     <td>${data.accionado}</td>
                     <td>${data.decisionTutela || '-'}</td>
                     <td>${data.fechaSolicitud ? data.fechaSolicitud.split('-').reverse().join('-') : '-'}</td>
+                    <td>${data.requerimientoIncidente ? data.requerimientoIncidente.split('-').reverse().join('-') : '-'}</td>
                     <td>${data.fechaApertura ? data.fechaApertura.split('-').reverse().join('-') : '-'}</td>
                     <td>${data.fechaSancion ? data.fechaSancion.split('-').reverse().join('-') : '-'}</td>
                     <td class="text-center">
@@ -3794,7 +3847,7 @@ window.loadDesacatosTable = async function () {
 
     } catch (error) {
         console.error("Error cargando tabla desacatos:", error);
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Error cargando datos: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">Error cargando datos: ${error.message}</td></tr>`;
     }
 };
 
