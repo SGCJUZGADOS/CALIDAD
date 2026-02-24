@@ -380,9 +380,9 @@ window.updateStatistics = function () {
 
     console.log("Generando estadísticas (Dual)...");
 
-    // Fetch BOTH collections
-    const pTutelas = db.collection("tutelas").get();
-    const pDemandas = db.collection("demandas").get();
+    // Fetch BOTH collections (Limited to 100 recent to save quota)
+    const pTutelas = db.collection("tutelas").orderBy("timestamp", "desc").limit(100).get();
+    const pDemandas = db.collection("demandas").orderBy("timestamp", "desc").limit(100).get();
 
     Promise.all([pTutelas, pDemandas]).then((snapshots) => {
         const tutelasSnap = snapshots[0];
@@ -1864,8 +1864,8 @@ window.setupRealtimeUpdates = function () {
         window.unsubscribeRealtime();
     }
 
-    // Escuchar colección 'tutelas' y renderizar cambios automáticamente
-    window.unsubscribeRealtime = db.collection(currentCollection).orderBy("fechaReparto", "desc").onSnapshot((snapshot) => {
+    // Escuchar colección activa y renderizar cambios automáticamente (Limitado a 100 más recientes)
+    window.unsubscribeRealtime = db.collection(currentCollection).orderBy("timestamp", "desc").limit(100).onSnapshot((snapshot) => {
         globalTerminos = [];
         snapshot.forEach((doc) => {
             const data = doc.data();

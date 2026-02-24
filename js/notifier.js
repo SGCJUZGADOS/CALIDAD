@@ -121,7 +121,7 @@ async function runNotifier() {
         // Note: Removing filters because Firestore skips documents if the field is missing
         const snapshot = await db.collection(coll)
             .orderBy('timestamp', 'desc')
-            .limit(100)
+            .limit(300)
             .get();
 
         if (snapshot.empty) {
@@ -132,9 +132,6 @@ async function runNotifier() {
         for (const doc of snapshot.docs) {
             const record = doc.data();
 
-            // Skip if already marked as sent
-            if (record.emailSent === true) continue;
-
             // Skip if already has a notification date (it's closed)
             if (record.fechaNotificacion) continue;
 
@@ -143,8 +140,12 @@ async function runNotifier() {
             let isYellow = false;
 
             if (record.diaDiez && todayStr > record.diaDiez) {
+                // RED ALERT: Check if already sent
+                if (record.emailSentRed === true) continue;
                 isRed = true;
             } else if (record.diaSiete && todayStr >= record.diaSiete) {
+                // YELLOW ALERT: Check if already sent
+                if (record.emailSentYellow === true || record.emailSent === true) continue;
                 isYellow = true;
             }
 
@@ -153,6 +154,7 @@ async function runNotifier() {
 
             // Re-assign correctly for the email template
             record.alerta = isRed ? 'Rojo' : 'Amarillo';
+            const alertSentField = isRed ? 'emailSentRed' : 'emailSentYellow';
 
             const juzgadoName = record.juzgado ? record.juzgado.trim() : null;
             const juzgadoKey = juzgadoName ? juzgadoName.toLowerCase() : null;
@@ -162,8 +164,10 @@ async function runNotifier() {
                 const sent = await sendAlertEmail(email, record, coll);
                 if (sent) {
                     await doc.ref.update({
-                        emailSent: true,
-                        emailSentAt: admin.firestore.FieldValue.serverTimestamp()
+                        [alertSentField]: true,
+                        [`${alertSentField}At`]: admin.firestore.FieldValue.serverTimestamp(),
+                        // Legacy support: if Red is sent, also mark general emailSent
+                        ...(isRed ? { emailSent: true } : {})
                     });
                 }
             } else {
