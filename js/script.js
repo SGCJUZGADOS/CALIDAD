@@ -133,6 +133,11 @@ window.switchModule = function (moduleName) {
     const desacatosSection = document.getElementById('desacatos-section'); // NEW
     if (desacatosSection) desacatosSection.style.display = 'none';
 
+    // Clear search and deep search state on module switch
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.value = '';
+    deepSearchResults = [];
+
     if (moduleName === 'users') {
         const navItem = document.getElementById('sidebarBtnUsers');
         if (navItem) navItem.classList.add('active');
@@ -1989,9 +1994,62 @@ window.setupRealtimeUpdates = function () {
 }
 
 // SEARCH LOGIC
+let deepSearchResults = [];
+
 document.getElementById('searchInput').addEventListener('keyup', function () {
     filterAndRender();
 });
+
+window.deepSearch = function () {
+    const query = document.getElementById('searchInput').value.trim();
+    if (query.length < 4) {
+        alert("⚠️ Ingrese al menos 4 caracteres para búsqueda profunda.");
+        return;
+    }
+
+    const searchBtn = document.getElementById('btnDeepSearch');
+    if (searchBtn) {
+        searchBtn.disabled = true;
+        searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
+    }
+
+    console.log("🔍 Iniciando Búsqueda Profunda para:", query);
+
+    // We look for the exact radicado or partial radicado in both tutelas and demandas
+    // To keep it simple and efficient, we use a single collection search based on currentCollection
+    db.collection(currentCollection)
+        .where("radicado", ">=", query)
+        .where("radicado", "<=", query + "\uf8ff")
+        .limit(10)
+        .get()
+        .then(snap => {
+            if (snap.empty) {
+                alert("❌ No se encontró ningún registro en toda la base de datos.");
+            } else {
+                const results = [];
+                snap.forEach(doc => results.push({ id: doc.id, ...doc.data() }));
+
+                // Merge into deepSearchResults (avoid duplicates)
+                results.forEach(res => {
+                    const exists = deepSearchResults.some(ds => ds.radicado === res.radicado);
+                    if (!exists) deepSearchResults.push(res);
+                });
+
+                console.log(`✅ Búsqueda profunda completada. ${results.length} resultados encontrados.`);
+                filterAndRender(); // Re-render with new data
+            }
+        })
+        .catch(e => {
+            console.error("Error en búsqueda profunda:", e);
+            alert("⚠️ Error al consultar la base de datos completa.");
+        })
+        .finally(() => {
+            if (searchBtn) {
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = '<i class="fas fa-search-plus"></i> Búsqueda Profunda';
+            }
+        });
+};
 
 function filterAndRender() {
     // 1. QUERY (Multicampo: Radicado, Nombres, etc)
@@ -2012,14 +2070,15 @@ function filterAndRender() {
 
     const filterJuzgado = filterJuzgadoEl ? filterJuzgadoEl.value : "";
 
-    // Actualizar filtros actuales en AdvancedFilters antes de filtrar
-    if (window.AdvancedFilters) {
-        window.AdvancedFilters.currentFilters.juzgado = filterJuzgado;
-        window.AdvancedFilters.currentFilters.searchTerm = query;
-        window.AdvancedFilters.currentFilters.radicadoEspecfico = document.getElementById('filterRadicadoAnio')?.value || "";
-    }
+    // Combine local results (Top 100) with Deep Search results
+    const allAvailable = [...globalTerminos];
+    deepSearchResults.forEach(ds => {
+        if (!allAvailable.some(item => item.radicado === ds.radicado)) {
+            allAvailable.push(ds);
+        }
+    });
 
-    const filtered = globalTerminos.filter(item => {
+    const filtered = allAvailable.filter(item => {
         // A. TEXT SEARCH
         const textToSearch = (
             (item.radicado || "") + " " +
@@ -2286,7 +2345,25 @@ function renderRealtimeTable(terminos) {
     tbody.innerHTML = '';
 
     if (terminos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="17" style="text-align:center">No hay registros en la Nube aún.</td></tr>';
+        const query = document.getElementById('searchInput')?.value || "";
+        if (query.length >= 1) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="17" style="text-align:center; padding: 40px;">
+                        <div style="font-size: 1.2rem; color: #666; mb-3">No se encontraron coincidencias en los registros más recientes.</div>
+                        <div style="margin-top: 15px;">
+                            <button id="btnDeepSearch" class="btn-premium btn-premium-blue" onclick="window.deepSearch()" style="padding: 10px 20px;">
+                                <i class="fas fa-search-plus"></i> Realizar Búsqueda Profunda en toda la Base de Datos
+                            </button>
+                        </div>
+                        <p style="margin-top: 10px; font-size: 0.85rem; color: #888;">
+                            (Esto buscará en los ${currentCollection === 'tutelas' ? '845' : '0'} registros históricos)
+                        </p>
+                    </td>
+                </tr>`;
+        } else {
+            tbody.innerHTML = '<tr><td colspan="17" style="text-align:center">No hay registros en la Nube aún.</td></tr>';
+        }
         // Clear pagination if exists
         const pagContainer = document.getElementById('paginationControls');
         if (pagContainer) pagContainer.innerHTML = '';
