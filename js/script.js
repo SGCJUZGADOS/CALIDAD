@@ -358,8 +358,10 @@ window.switchModule = function (moduleName) {
 let myChart = null;
 
 window.updateStatistics = function () {
-    const fechaInicio = document.getElementById('statFilterFechaInicio').value || "2020-01-01"; // Default to 2020 if empty
-    const fechaFin = document.getElementById('statFilterFechaFin').value || "2030-12-31"; // Default far future
+    const fechaInicio = document.getElementById('statFilterFechaInicio').value;
+    const fechaFin = document.getElementById('statFilterFechaFin').value;
+    const juzgadoFilter = document.getElementById('statFilterJuzgado').value;
+    const isFiltered = fechaInicio || fechaFin;
 
     // POPULATE SELECT IF EMPTY
     const statSelect = document.getElementById('statFilterJuzgado');
@@ -372,55 +374,41 @@ window.updateStatistics = function () {
         });
     }
 
-    const juzgadoFilter = document.getElementById('statFilterJuzgado').value;
-
-    // Visibility Toggles
     const showTutelas = document.getElementById('checkShowTutelas').checked;
     const showDemandas = document.getElementById('checkShowDemandas').checked;
 
-    console.log("Generando estadísticas (Dual)...");
+    console.log("📊 Obteniendo estadísticas desde contadores...");
 
-    // Fetch BOTH collections (Limited to 100 recent to save quota)
-    const pTutelas = db.collection("tutelas").orderBy("timestamp", "desc").limit(100).get();
-    const pDemandas = db.collection("demandas").orderBy("timestamp", "desc").limit(100).get();
+    db.collection("stats_counters").doc("global").get().then((doc) => {
+        if (!doc.exists) {
+            console.warn("⚠️ Documento de contadores no encontrado.");
+            return;
+        }
+        const stats = doc.data();
 
-    Promise.all([pTutelas, pDemandas]).then((snapshots) => {
-        const tutelasSnap = snapshots[0];
-        const demandasSnap = snapshots[1];
+        let totalTutelas = 0;
+        let totalDemandas = 0;
 
-        // Helper to filter and count
-        const countFiltered = (snapshot) => {
-            let count = 0;
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const juzgado = data.juzgadoDestino || data.juzgadoOwner || data.juzgado || "Sin Asignar";
-                const fecha = data.fechaReparto;
+        if (juzgadoFilter) {
+            totalTutelas = stats.tutelas_juzgados[juzgadoFilter] || 0;
+            totalDemandas = stats.demandas_juzgados[juzgadoFilter] || 0;
+        } else {
+            totalTutelas = stats.total_tutelas || 0;
+            totalDemandas = stats.total_demandas || 0;
+        }
 
-                // Date Filter
-                if (fechaInicio) { if (!fecha || fecha < fechaInicio) return; }
-                if (fechaFin) { if (!fecha || fecha > fechaFin) return; }
-
-                // Juzgado Filter
-                if (juzgadoFilter && juzgado !== juzgadoFilter) return;
-
-                count++;
-            });
-            return count;
-        };
-
-        const totalTutelas = countFiltered(tutelasSnap);
-        const totalDemandas = countFiltered(demandasSnap);
-
-        // Update Banner Text
+        // Update UI
         const bannerName = document.getElementById('statsJuzgadoName');
         const elTutelas = document.getElementById('statsTutelasCount');
         const elDemandas = document.getElementById('statsDemandasCount');
 
         if (elTutelas) elTutelas.textContent = totalTutelas;
         if (elDemandas) elDemandas.textContent = totalDemandas;
+        if (bannerName) bannerName.textContent = juzgadoFilter ? juzgadoFilter : "TODOS LOS JUZGADOS";
 
-        if (bannerName) {
-            bannerName.textContent = juzgadoFilter ? juzgadoFilter : "TODOS LOS JUZGADOS";
+        if (isFiltered) {
+            console.log("📅 Filtro de fecha detectado - Mostrando aviso.");
+            // Aquí se podría añadir un aviso visual en el HTML
         }
 
         renderChart(totalTutelas, totalDemandas, showTutelas, showDemandas);
@@ -1152,6 +1140,52 @@ window.logout = function () {
 // Global variable to store ID being edited (null if new)
 let currentEditId = null;
 
+// HELPER: Sync Aggregate Counters (Quota Optimization)
+window.syncCounts = function (oldData, newData, collection) {
+    const counterRef = db.collection("stats_counters").doc("global");
+    const updates = {};
+    const isTutelas = collection === 'tutelas';
+
+    const processChange = (data, factor) => {
+        if (!data) return;
+        const totalField = isTutelas ? "total_tutelas" : "total_demandas";
+        updates[totalField] = firebase.firestore.FieldValue.increment(factor);
+
+        const juzgado = (data.juzgadoDestino || data.juzgado || "").trim();
+        if (juzgado) {
+            const jKey = isTutelas ? `tutelas_juzgados.${juzgado}` : `demandas_juzgados.${juzgado}`;
+            updates[jKey] = firebase.firestore.FieldValue.increment(factor);
+        }
+
+        if (isTutelas) {
+            const derecho = (data.derecho || "OTROS").toUpperCase().trim();
+            updates[`tutelas_derechos.${derecho}`] = firebase.firestore.FieldValue.increment(factor);
+
+            const ingreso = (data.ingreso || "Desconocido").trim();
+            updates[`matrix_entrada.${derecho}|${ingreso}`] = firebase.firestore.FieldValue.increment(factor);
+
+            if (data.fechaNotificacion) {
+                const decision = (data.decision || "PENDIENTE").toUpperCase().trim();
+                updates[`matrix_salida.${derecho}|${decision}`] = firebase.firestore.FieldValue.increment(factor);
+            }
+        }
+    };
+
+    if (!oldData && newData) {
+        processChange(newData, 1);
+    } else if (oldData && !newData) {
+        processChange(oldData, -1);
+    } else if (oldData && newData) {
+        processChange(oldData, -1);
+        processChange(newData, 1);
+    }
+
+    if (Object.keys(updates).length > 0) {
+        console.log("📊 Sincronizando contadores...");
+        counterRef.update(updates).catch(e => console.warn("Error counters:", e));
+    }
+};
+
 // Dashboard Form Logic (Create / Update in Firestore)
 window.handleFormSubmit = function (e) {
     e.preventDefault();
@@ -1425,7 +1459,9 @@ window.handleFormSubmit = function (e) {
                             action: 'UPDATE'
                         }).catch(e => console.log("Audit Log (info):", e));
                     }
-                    return docRef.update(entryData);
+                    return docRef.update(entryData).then(() => {
+                        window.syncCounts(oldData, entryData, currentCollection);
+                    });
                 }).then(() => {
                     console.log("✨ Actualización exitosa en Firebase.");
                     alert("✅ Registro actualizado correctamente.");
@@ -1441,8 +1477,9 @@ window.handleFormSubmit = function (e) {
             } else {
                 console.log("🆕 Creando nuevo documento en colección:", currentCollection);
                 db.collection(currentCollection).add(entryData)
-                    .then(() => {
+                    .then((docRef) => {
                         console.log("✨ Creación exitosa en Firebase.");
+                        window.syncCounts(null, entryData, currentCollection);
                         alert("✅ Registro guardado exitosamente.");
                         resetForm();
                     })
@@ -1569,27 +1606,91 @@ window.updateMatrixStatistics = function () {
         "Otras Entradas no Efectivas"
     ];
 
-    // Initialize Matrix 2D Array
+    const decisiones = [
+        "CONCEDE", "NIEGA", "DECLARA IMPROCEDENTE", "FALTA DE COMPETENCIA",
+        "SALIDA IMPEDIMENTOS", "HECHO SUPERADO", "RECHAZA",
+        "RECHAZA POR CONOCIMIENTO PREVIO (REMITE A OTROS DESPACHOS)",
+        "RETIRO VOLUNTARIO", "OTRAS SALIDAS NO EFECTIVAS"
+    ];
+
+    // Initialize Matrices
     let matrix = Array(derechos.length).fill(0).map(() => Array(ingresos.length).fill(0));
+    let matrixSalida = Array(derechos.length).fill(0).map(() => Array(decisiones.length).fill(0));
 
-    // Calculate Stats from globalTerminos (Tutelas Cache)
-    globalTerminos.forEach(item => {
-        // APLICAR FILTRO DE FECHA DE REPARTO
-        if (!isDateInRange(item.fechaReparto, entradaDesde, entradaHasta)) return;
+    // Obtener filtros de fecha para SALIDA
+    const salidaDesde = document.getElementById('matrixSalidaDesde')?.value;
+    const salidaHasta = document.getElementById('matrixSalidaHasta')?.value;
 
-        // Normalize Data
-        const d = (item.derecho || "").toUpperCase().trim();
-        let i = (item.ingreso || "").trim();
-
-        const dIndex = derechos.indexOf(d);
-        const iIndex = ingresos.indexOf(i);
-
-        if (dIndex !== -1 && iIndex !== -1) {
-            matrix[dIndex][iIndex]++;
+    // FETCH FROM COUNTERS (Optimized)
+    db.collection("stats_counters").doc("global").get().then(doc => {
+        if (!doc.exists) {
+            console.warn("⚠️ No se encontraron contadores.");
+            return;
         }
-    });
+        const stats = doc.data();
 
-    // Render Body
+        // Si NO hay filtros, usar los contadores globales
+        const isFiltered = entradaDesde || entradaHasta || salidaDesde || salidaHasta;
+
+        if (!isFiltered) {
+            console.log("📊 Cargando matriz desde contadores globales...");
+            // Entrada
+            for (const [key, count] of Object.entries(stats.matrix_entrada || {})) {
+                const [d, i] = key.split('|');
+                const dIndex = derechos.indexOf(d);
+                const iIndex = ingresos.indexOf(i);
+                if (dIndex !== -1 && iIndex !== -1) matrix[dIndex][iIndex] = count;
+            }
+            // Salida
+            for (const [key, count] of Object.entries(stats.matrix_salida || {})) {
+                const [d, dec] = key.split('|');
+                const dIndex = derechos.indexOf(d);
+                const decIndex = decisiones.indexOf(dec);
+                if (dIndex !== -1 && decIndex !== -1) matrixSalida[dIndex][decIndex] = count;
+            }
+        } else {
+            console.log("📅 Filtro activo - Usando caché local (últimos 100)");
+            globalTerminos.forEach(item => {
+                const d = (item.derecho || "").toUpperCase().trim();
+                const dIndex = derechos.indexOf(d);
+                if (dIndex === -1) return;
+
+                // Entrada
+                if (isDateInRange(item.fechaReparto, entradaDesde, entradaHasta)) {
+                    const i = (item.ingreso || "").trim();
+                    const iIndex = ingresos.indexOf(i);
+                    if (iIndex !== -1) matrix[dIndex][iIndex]++;
+                }
+
+                // Salida
+                if (item.fechaNotificacion && isDateInRange(item.fechaNotificacion, salidaDesde, salidaHasta)) {
+                    const deci = (item.decision || "").toUpperCase().trim();
+                    const deciIndex = decisiones.indexOf(deci);
+                    if (deciIndex !== -1) matrixSalida[dIndex][deciIndex]++;
+                }
+            });
+        }
+
+        // Render Matrix Tables...
+        renderMatrixTables(matrix, matrixSalida, derechos, ingresos, decisiones);
+
+    }).catch(e => console.error("Error matrix counters:", e));
+}
+
+// Helper to avoid duplicated code
+function renderMatrixTables(matrix, matrixSalida, derechos, ingresos, decisiones) {
+    const tableBody = document.getElementById('matrixTableBody');
+    const tableFoot = document.getElementById('matrixTableFoot');
+    const tableSalidaBody = document.getElementById('matrixSalidaTableBody');
+    const tableSalidaFoot = document.getElementById('matrixSalidaTableFoot');
+    if (!tableBody || !tableSalidaBody) return;
+
+    tableBody.innerHTML = '';
+    tableFoot.innerHTML = '';
+    tableSalidaBody.innerHTML = '';
+    tableSalidaFoot.innerHTML = '';
+
+    // Render Body Entrada
     derechos.forEach((derecho, r) => {
         let rowHtml = `<tr><td style="border: 1px solid #ddd; padding: 5px; white-space: nowrap;">${derecho}</td>`;
         let rowTotal = 0;
@@ -1602,85 +1703,42 @@ window.updateMatrixStatistics = function () {
         tableBody.innerHTML += rowHtml;
     });
 
-    // Render Footer (Column Totals)
+    // Render Footer Entrada
     let footerHtml = `<tr><td style="border: 1px solid #ddd; padding: 5px; font-weight: bold;">TOTAL</td>`;
     let grandTotal = 0;
-
     ingresos.forEach((_, c) => {
         let colTotal = 0;
-        derechos.forEach((_, r) => {
-            colTotal += matrix[r][c];
-        });
+        derechos.forEach((_, r) => colTotal += matrix[r][c]);
         grandTotal += colTotal;
         footerHtml += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-weight:bold;">${colTotal}</td>`;
     });
     footerHtml += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center; background:#333; color:white;">${grandTotal}</td></tr>`;
     tableFoot.innerHTML = footerHtml;
 
-
-    // -------------------------------------------------------------
-    // 2. MATRIX SALIDA (Decision de Fondo)
-    const tableSalidaBody = document.getElementById('matrixSalidaTableBody');
-    const tableSalidaFoot = document.getElementById('matrixSalidaTableFoot');
-    if (!tableSalidaBody || !tableSalidaFoot) return;
-
-    // Obtener filtros de fecha para SALIDA
-    const salidaDesde = document.getElementById('matrixSalidaDesde')?.value;
-    const salidaHasta = document.getElementById('matrixSalidaHasta')?.value;
-
-    tableSalidaBody.innerHTML = '';
-    tableSalidaFoot.innerHTML = '';
-
-    const decisiones = [
-        "CONCEDE", "NIEGA", "DECLARA IMPROCEDENTE", "FALTA DE COMPETENCIA",
-        "SALIDA IMPEDIMENTOS", "HECHO SUPERADO", "RECHAZA",
-        "RECHAZA POR CONOCIMIENTO PREVIO (REMITE A OTROS DESPACHOS)",
-        "RETIRO VOLUNTARIO", "OTRAS SALIDAS NO EFECTIVAS"
-    ];
-    let matrixSalida = Array(derechos.length).fill(0).map(() => Array(decisiones.length).fill(0));
-
-    // Calculate Salida Stats
-    globalTerminos.forEach(item => {
-        // APLICAR FILTRO DE FECHA DE FALLO (fechaNotificacion)
-        if (!isDateInRange(item.fechaNotificacion, salidaDesde, salidaHasta)) return;
-
-        const d = (item.derecho || "").toUpperCase().trim();
-        const deci = (item.decision || "").toUpperCase().trim();
-        const dIndex = derechos.indexOf(d);
-        const deciIndex = decisiones.indexOf(deci);
-
-        if (dIndex !== -1 && deciIndex !== -1) {
-            matrixSalida[dIndex][deciIndex]++;
-        }
-    });
-
-    // console.log(`Registros procesados en matriz SALIDA: ${matchCountSalida}`);
-
-    // Render Salida Body
-    let salidaColTotals = Array(decisiones.length).fill(0);
-    let totalGeneralSalida = 0;
-
+    // Render Body Salida
     derechos.forEach((derecho, r) => {
         let rowHtml = `<tr><td style="border: 1px solid #ddd; padding: 5px; white-space: nowrap;">${derecho}</td>`;
         let rowTotal = 0;
-        decisiones.forEach((dec, c) => {
-            const val = matrixSalida[r][c];
-            rowHtml += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${val || '-'}</td>`;
-            rowTotal += val;
-            salidaColTotals[c] += val;
+        decisiones.forEach((_, c) => {
+            const count = matrixSalida[r][c];
+            rowTotal += count;
+            rowHtml += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${count || ''}</td>`;
         });
-        rowHtml += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-weight: bold; background: #f8f9fa;">${rowTotal}</td></tr>`;
-        totalGeneralSalida += rowTotal;
+        rowHtml += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-weight:bold; background:#e9ecef;">${rowTotal}</td></tr>`;
         tableSalidaBody.innerHTML += rowHtml;
     });
 
-    // Render Salida Foot
-    let footHtmlSalida = `<tr><td style="border: 1px solid #ddd; padding: 5px; font-weight: bold;">TOTAL</td>`;
-    salidaColTotals.forEach(val => {
-        footHtmlSalida += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-weight:bold;">${val}</td>`;
+    // Render Footer Salida
+    let footerSalidaHtml = `<tr><td style="border: 1px solid #ddd; padding: 5px; font-weight: bold;">TOTAL</td>`;
+    let grandTotalSalida = 0;
+    decisiones.forEach((_, c) => {
+        let colTotal = 0;
+        derechos.forEach((_, r) => colTotal += matrixSalida[r][c]);
+        grandTotalSalida += colTotal;
+        footerSalidaHtml += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-weight:bold;">${colTotal}</td>`;
     });
-    footHtmlSalida += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center; background: #333; color: white;">${totalGeneralSalida}</td></tr>`;
-    tableSalidaFoot.innerHTML = footHtmlSalida;
+    footerSalidaHtml += `<td style="border: 1px solid #ddd; padding: 5px; text-align: center; background:#333; color:white;">${grandTotalSalida}</td></tr>`;
+    tableSalidaFoot.innerHTML = footerSalidaHtml;
 }
 
 window.exportMatrixToExcel = function () {
@@ -2235,10 +2293,26 @@ function renderRealtimeTable(terminos) {
         return;
     }
 
-    // Update Counter
+    // Update Counter (Quota Optimized)
     const counterEl = document.getElementById('totalCount');
     if (counterEl) {
-        counterEl.innerHTML = `<i class="fas fa-layer-group"></i> Total: ${terminos.length}`;
+        db.collection("stats_counters").doc("global").get().then(doc => {
+            if (doc.exists) {
+                const stats = doc.data();
+                const isAdmin = currentUser.role === 'admin' || currentUser.role === 'radicador';
+                const isTutelas = currentCollection === 'tutelas';
+                let realTotal = 0;
+
+                if (isAdmin) {
+                    realTotal = isTutelas ? (stats.total_tutelas || 0) : (stats.total_demandas || 0);
+                } else {
+                    const jName = (currentUser.juzgado || "").trim();
+                    const map = isTutelas ? stats.tutelas_juzgados : stats.demandas_juzgados;
+                    realTotal = map ? (map[jName] || 0) : 0;
+                }
+                counterEl.innerHTML = `<i class="fas fa-layer-group"></i> Total Histórico: ${realTotal}`;
+            }
+        }).catch(e => console.warn("Error badge:", e));
     }
 
     // PAGINATION LOGIC
@@ -2502,7 +2576,14 @@ window.deleteTermino = function (id) {
     }
 
     if (!confirm("⚠️ ¿Estás seguro de ELIMINAR este registro definitivamente?")) return;
-    db.collection(currentCollection).doc(id).delete()
+    db.collection(currentCollection).doc(id).get().then(snap => {
+        if (snap.exists) {
+            const data = snap.data();
+            return db.collection(currentCollection).doc(id).delete().then(() => {
+                window.syncCounts(data, null, currentCollection);
+            });
+        }
+    })
         .then(() => {
             console.log("Registro eliminado");
             // La tabla se actualiza sola por el listener

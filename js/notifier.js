@@ -139,7 +139,7 @@ async function runNotifier() {
             let isRed = false;
             let isYellow = false;
 
-            if (record.diaDiez && todayStr > record.diaDiez) {
+            if (record.diaDiez && todayStr >= record.diaDiez) {
                 // RED ALERT: Check if already sent
                 if (record.emailSentRed === true) continue;
                 isRed = true;
