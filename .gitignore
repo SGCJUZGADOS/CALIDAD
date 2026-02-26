@@ -34,3 +34,13 @@ LISTA_JUZGADOS.txt
 
 # Logs
 *_log.txt
+
+# AI Agent files
+AGENTS.md
+SOUL.md
+IDENTITY.md
+BOOTSTRAP.md
+HEARTBEAT.md
+TOOLS.md
+USER.md
+.openclaw/

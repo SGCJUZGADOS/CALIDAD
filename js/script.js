@@ -366,7 +366,7 @@ window.updateStatistics = function () {
     const fechaInicio = document.getElementById('statFilterFechaInicio').value;
     const fechaFin = document.getElementById('statFilterFechaFin').value;
     const juzgadoFilter = document.getElementById('statFilterJuzgado').value;
-    const isFiltered = fechaInicio || fechaFin;
+    const isFiltered = fechaInicio || fechaFin || juzgadoFilter;
 
     // POPULATE SELECT IF EMPTY
     const statSelect = document.getElementById('statFilterJuzgado');
@@ -382,45 +382,78 @@ window.updateStatistics = function () {
     const showTutelas = document.getElementById('checkShowTutelas').checked;
     const showDemandas = document.getElementById('checkShowDemandas').checked;
 
-    console.log("📊 Obteniendo estadísticas desde contadores...");
+    const bannerName = document.getElementById('statsJuzgadoName');
+    const elTutelas = document.getElementById('statsTutelasCount');
+    const elDemandas = document.getElementById('statsDemandasCount');
+    const elAviso = document.getElementById('statsFilterAviso');
 
-    db.collection("stats_counters").doc("global").get().then((doc) => {
-        if (!doc.exists) {
-            console.warn("⚠️ Documento de contadores no encontrado.");
-            return;
-        }
-        const stats = doc.data();
+    // MODO ESTADÍSTICA:
+    // 1. Si no hay filtros (Fecha/Juzgado), usamos los CONTADORES GLOBALES (Auditables y Exactos)
+    // 2. Si hay filtros, calculamos SOBRE LA MARCHA con los datos locales (globalTerminos)
 
-        let totalTutelas = 0;
-        let totalDemandas = 0;
+    if (!isFiltered) {
+        console.log("📊 Obteniendo estadísticas desde contadores globales...");
+        if (elAviso) elAviso.style.display = 'none';
 
-        if (juzgadoFilter) {
-            totalTutelas = stats.tutelas_juzgados[juzgadoFilter] || 0;
-            totalDemandas = stats.demandas_juzgados[juzgadoFilter] || 0;
-        } else {
-            totalTutelas = stats.total_tutelas || 0;
-            totalDemandas = stats.total_demandas || 0;
-        }
+        db.collection("stats_counters").doc("global").get().then((doc) => {
+            if (!doc.exists) return;
+            const stats = doc.data();
+            const totalTutelas = stats.total_tutelas || 0;
+            const totalDemandas = stats.total_demandas || 0;
 
-        // Update UI
-        const bannerName = document.getElementById('statsJuzgadoName');
-        const elTutelas = document.getElementById('statsTutelasCount');
-        const elDemandas = document.getElementById('statsDemandasCount');
+            if (elTutelas) elTutelas.textContent = totalTutelas;
+            if (elDemandas) elDemandas.textContent = totalDemandas;
+            if (bannerName) bannerName.textContent = "TODOS LOS JUZGADOS (GLOBAL)";
 
-        if (elTutelas) elTutelas.textContent = totalTutelas;
-        if (elDemandas) elDemandas.textContent = totalDemandas;
-        if (bannerName) bannerName.textContent = juzgadoFilter ? juzgadoFilter : "TODOS LOS JUZGADOS";
-
-        if (isFiltered) {
-            console.log("📅 Filtro de fecha detectado - Mostrando aviso.");
-            // Aquí se podría añadir un aviso visual en el HTML
+            renderChart(totalTutelas, totalDemandas, showTutelas, showDemandas);
+        });
+    } else {
+        console.log("📅 Calculando estadísticas dinámicas por filtros...");
+        if (elAviso) {
+            elAviso.style.display = 'block';
+            elAviso.innerHTML = `<i class="fas fa-info-circle"></i> Filtrando según vista actual (${globalTerminos.length} registros cargados).`;
         }
 
-        renderChart(totalTutelas, totalDemandas, showTutelas, showDemandas);
+        let dynTutelas = 0;
+        let dynDemandas = 0;
 
-    }).catch((error) => {
-        console.error("Error loading stats:", error);
-    });
+        // Filtramos y contamos sobre globalTerminos
+        globalTerminos.forEach(item => {
+            // Criterio Juzgado
+            let matchesJuzgado = true;
+            if (juzgadoFilter) {
+                const docJuz = (item.juzgadoDestino || item.juzgado || "").trim().toLowerCase();
+                const fJuz = juzgadoFilter.trim().toLowerCase();
+                matchesJuzgado = docJuz.includes(fJuz) || fJuz.includes(docJuz);
+            }
+
+            // Criterio Fecha
+            let matchesFecha = true;
+            if (fechaInicio || fechaFin) {
+                const fDoc = item.fechaReparto;
+                if (!fDoc) matchesFecha = false;
+                else {
+                    if (fechaInicio && fDoc < fechaInicio) matchesFecha = false;
+                    if (fechaFin && fDoc > fechaFin) matchesFecha = false;
+                }
+            }
+
+            if (matchesJuzgado && matchesFecha) {
+                if (item.radicado && item.radicado.length > 0) {
+                    // Check if it belongs to current module or a inferred category
+                    // (En este dashboard, globalTerminos suele ser la coleccion actual)
+                    if (currentCollection === 'tutelas') dynTutelas++;
+                    else dynDemandas++;
+                }
+            }
+        });
+
+        if (elTutelas) elTutelas.textContent = dynTutelas;
+        if (elDemandas) elDemandas.textContent = dynDemandas;
+        if (bannerName) bannerName.textContent = juzgadoFilter ? juzgadoFilter : "Múltiples Despachos";
+
+        renderChart(dynTutelas, dynDemandas, showTutelas, showDemandas);
+    }
 }
 
 function renderChart(countTutelas, countDemandas, showTutelas, showDemandas) {
@@ -1927,8 +1960,8 @@ window.setupRealtimeUpdates = function () {
         window.unsubscribeRealtime();
     }
 
-    // Escuchar colección activa y renderizar cambios automáticamente (Limitado a 100 más recientes)
-    window.unsubscribeRealtime = db.collection(currentCollection).orderBy("timestamp", "desc").limit(100).onSnapshot((snapshot) => {
+    // Escuchar colección activa (Sin límite - Visibilidad total activada a petición del usuario)
+    window.unsubscribeRealtime = db.collection(currentCollection).orderBy("timestamp", "desc").onSnapshot((snapshot) => {
         globalTerminos = [];
         snapshot.forEach((doc) => {
             const data = doc.data();
@@ -1944,25 +1977,30 @@ window.setupRealtimeUpdates = function () {
             if (role === 'admin' || role.startsWith('radicador')) {
                 showRecord = true;
             } else {
-                // Precise match required - con TRIM y manejo de nulidad
-                // Check multiple possible fields for juzgado mapping
-                const dataJuzgado = (data.juzgado || "").trim();
-                const dataJuzgadoDestino = (data.juzgadoDestino || "").trim();
-                const userJuzgado = (currentUser.juzgado || "").trim();
+                // STRICT match - solo mostrar registros que pertenezcan al despacho del usuario
+                const dataJuzgado = (data.juzgado || "").toLowerCase().trim();
+                const dataJuzgadoDestino = (data.juzgadoDestino || "").toLowerCase().trim();
+                const dataJuzgadoOwner = (data.juzgadoOwner || "").toLowerCase().trim();
+                const userJuzgado = (currentUser.juzgado || "").toLowerCase().trim();
 
                 let isMatch = false;
 
-                // SPECIAL MATCH FOR JUZ01CMPL (Emergency Fuzzy Logic)
-                if (currentUser.username === 'juz01cmpl') {
-                    const normData = dataJuzgado.toLowerCase();
-                    const normDestino = dataJuzgadoDestino.toLowerCase();
-                    if (normData.includes("primero civil municipal") || normDestino.includes("primero civil municipal")) {
-                        isMatch = true;
-                    }
+                // Si el usuario no tiene juzgado asignado, no mostrar nada
+                if (!userJuzgado) {
+                    isMatch = false;
                 }
-
-                // STANDARD EXACT MATCH (Primary check)
-                if ((dataJuzgado && dataJuzgado === userJuzgado) || (dataJuzgadoDestino && dataJuzgadoDestino === userJuzgado)) {
+                // 1. Exact match (after trimming/casing)
+                else if (dataJuzgadoDestino === userJuzgado || dataJuzgado === userJuzgado || dataJuzgadoOwner === userJuzgado) {
+                    isMatch = true;
+                }
+                // 2. Inclusion match - SOLO si ambos campos son no-vacíos
+                else if (dataJuzgadoDestino && (dataJuzgadoDestino.includes(userJuzgado) || userJuzgado.includes(dataJuzgadoDestino))) {
+                    isMatch = true;
+                }
+                else if (dataJuzgado && (dataJuzgado.includes(userJuzgado) || userJuzgado.includes(dataJuzgado))) {
+                    isMatch = true;
+                }
+                else if (dataJuzgadoOwner && (dataJuzgadoOwner.includes(userJuzgado) || userJuzgado.includes(dataJuzgadoOwner))) {
                     isMatch = true;
                 }
 
@@ -1973,7 +2011,7 @@ window.setupRealtimeUpdates = function () {
                 globalTerminos.push({ id: doc.id, ...data });
             }
         });
-        filterAndRender(); // Render with current filter
+        filterAndRender(true); // Render with current filter (preserve page)
 
         // AUTO-UPDATE STATISTICS IF VISIBLE
         if (typeof window.updateMatrixStatistics === 'function') {
@@ -2051,12 +2089,12 @@ window.deepSearch = function () {
         });
 };
 
-function filterAndRender() {
+function filterAndRender(skipPageReset) {
     // 1. QUERY (Multicampo: Radicado, Nombres, etc)
     const query = document.getElementById('searchInput').value.toLowerCase();
 
     // 2. FECHA REPARTO
-    const filterFecha = document.getElementById('filterFecha').value;
+    const filterFecha = document.getElementById('filterFecha').value.trim();
 
     // 3. JUZGADO (Nuevo filtro opcional para Admin/Radicador)
     const filterJuzgadoEl = document.getElementById('filterJuzgadoTabla');
@@ -2069,6 +2107,11 @@ function filterAndRender() {
     }
 
     const filterJuzgado = filterJuzgadoEl ? filterJuzgadoEl.value : "";
+
+    // RESET PAGINATION cuando hay filtros activos (pero NO al cambiar de página)
+    if (!skipPageReset) {
+        currentPage = 1;
+    }
 
     // Combine local results (Top 100) with Deep Search results
     const allAvailable = [...globalTerminos];
@@ -2090,8 +2133,26 @@ function filterAndRender() {
         ).toLowerCase();
         const matchesText = textToSearch.includes(query);
 
-        // B. DATE FILTER (Simple)
-        const matchesFecha = (filterFecha === "") || (item.fechaReparto === filterFecha);
+        // B. DATE FILTER (Robusto - normaliza formatos)
+        let matchesFecha = true;
+        if (filterFecha !== "") {
+            const itemFecha = (item.fechaReparto || "").trim();
+            // Comparación directa (ambos YYYY-MM-DD)
+            if (itemFecha === filterFecha) {
+                matchesFecha = true;
+            } else if (itemFecha) {
+                // Fallback: comparar como objetos Date para manejar formatos diferentes
+                try {
+                    const dFilter = new Date(filterFecha + "T00:00:00");
+                    const dItem = new Date(itemFecha + "T00:00:00");
+                    matchesFecha = (dFilter.getTime() === dItem.getTime());
+                } catch (e) {
+                    matchesFecha = false;
+                }
+            } else {
+                matchesFecha = false;
+            }
+        }
 
         // C. DOCUMENT FILTER (Cédula/NIT)
         let matchesDoc = true;
@@ -2104,13 +2165,20 @@ function filterAndRender() {
             matchesDoc = id1.includes(filterDoc) || id2.includes(filterDoc);
         }
 
-        // D. ADVANCED FILTERS INTEGRATION
+        // D. JUZGADO FILTER (desde toolbar)
+        let matchesJuzgado = true;
+        if (filterJuzgado !== "") {
+            const juzDoc = (item.juzgadoDestino || item.juzgadoOwner || item.juzgado || "").toLowerCase().trim();
+            matchesJuzgado = juzDoc.includes(filterJuzgado.toLowerCase());
+        }
+
+        // E. ADVANCED FILTERS INTEGRATION
         let matchesAdvanced = true;
         if (window.AdvancedFilters && typeof window.AdvancedFilters.matchesFilters === 'function') {
             matchesAdvanced = window.AdvancedFilters.matchesFilters(item);
         }
 
-        return matchesText && matchesFecha && matchesDoc && matchesAdvanced;
+        return matchesText && matchesFecha && matchesDoc && matchesJuzgado && matchesAdvanced;
     });
 
     renderRealtimeTable(filtered);
@@ -2357,7 +2425,7 @@ function renderRealtimeTable(terminos) {
                             </button>
                         </div>
                         <p style="margin-top: 10px; font-size: 0.85rem; color: #888;">
-                            (Esto buscará en los ${currentCollection === 'tutelas' ? '845' : '0'} registros históricos)
+                            (Esto buscará en los registros históricos usando indexación profunda)
                         </p>
                     </td>
                 </tr>`;
@@ -2370,13 +2438,19 @@ function renderRealtimeTable(terminos) {
         return;
     }
 
-    // Update Counter (Quota Optimized)
+    // Update Counter - Mostrar total filtrado + total histórico
     const counterEl = document.getElementById('totalCount');
     if (counterEl) {
+        // Mostrar el conteo filtrado primero
+        const filteredTotal = terminos.length;
+        counterEl.innerHTML = `<i class="fas fa-layer-group"></i> Mostrando: ${filteredTotal}`;
+
+        // Agregar total histórico en segundo plano
         db.collection("stats_counters").doc("global").get().then(doc => {
             if (doc.exists) {
                 const stats = doc.data();
-                const isAdmin = currentUser.role === 'admin' || currentUser.role === 'radicador';
+                const role = (currentUser.role || "").toLowerCase();
+                const isAdmin = role === 'admin' || role.startsWith('radicador');
                 const isTutelas = currentCollection === 'tutelas';
                 let realTotal = 0;
 
@@ -2387,7 +2461,16 @@ function renderRealtimeTable(terminos) {
                     const map = isTutelas ? stats.tutelas_juzgados : stats.demandas_juzgados;
                     realTotal = map ? (map[jName] || 0) : 0;
                 }
-                counterEl.innerHTML = `<i class="fas fa-layer-group"></i> Total Histórico: ${realTotal}`;
+                // Si hay filtros activos, mostrar ambos conteos
+                const hasFilters = (document.getElementById('filterFecha')?.value || '') !== '' ||
+                    (document.getElementById('searchInput')?.value || '') !== '' ||
+                    (document.getElementById('filterDocumento')?.value || '') !== '' ||
+                    (document.getElementById('filterJuzgadoTabla')?.value || '') !== '';
+                if (hasFilters) {
+                    counterEl.innerHTML = `<i class="fas fa-filter"></i> Filtrado: ${filteredTotal} / <i class="fas fa-layer-group"></i> Total: ${realTotal}`;
+                } else {
+                    counterEl.innerHTML = `<i class="fas fa-layer-group"></i> Total Histórico: ${realTotal}`;
+                }
             }
         }).catch(e => console.warn("Error badge:", e));
     }
@@ -2643,7 +2726,8 @@ window.changePage = function (newPage) {
     // Re-render current global data with new page
     // Needs access to current filtered data. 
     // Optimization: call filterAndRender() which calls renderRealtimeTable
-    filterAndRender();
+    // Usar flag para NO resetear la página (ya que es un cambio de página, no de filtro)
+    filterAndRender(true);
 }
 
 window.deleteTermino = function (id) {

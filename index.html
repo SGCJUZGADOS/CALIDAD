@@ -455,6 +455,9 @@
                                     style="color: #333; margin: 0; font-size: 1.5rem; font-weight: 700; text-transform: uppercase;">
                                     TODOS LOS JUZGADOS</h2>
                             </div>
+                            <div id="statsFilterAviso"
+                                style="display:none; grid-column: span 3; text-align: center; font-size: 0.85rem; color: #004884; background: #e7f3ff; padding: 10px; border-radius: 8px; border: 1px solid #b3d7ff; margin-bottom: 20px;">
+                            </div>
                             <div
                                 style="background: linear-gradient(135deg, #004884 0%, #002a4d 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center;">
                                 <i class="fas fa-balance-scale"
@@ -1221,6 +1224,7 @@
                                         style="font-size: 0.8rem; color: #666; margin-bottom: 2px;">Fecha
                                         Reparto</label>
                                     <input type="date" id="filterFecha" onchange="filterAndRender()"
+                                        oninput="filterAndRender()"
                                         style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #aaa; font-size: 1rem;">
                                 </div>
 

@@ -179,13 +179,12 @@ const AdvancedFilters = {
     // Adjuntar event listeners
     attachEventListeners() {
         // Enter key en campos de texto
-        const textInputs = ['filterFechaInicio', 'filterFechaFin'];
-        textInputs.forEach(id => {
+        // Auto-aplicar al cambiar fechas (Crucial para inputs type="date")
+        const dateInputs = ['filterFechaInicio', 'filterFechaFin'];
+        dateInputs.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') this.applyFilters();
-                });
+                el.addEventListener('change', () => this.applyFilters());
             }
         });
 
@@ -304,6 +303,8 @@ const AdvancedFilters = {
         // Filtro de rango de fechas
         if (this.currentFilters.fechaInicio || this.currentFilters.fechaFin) {
             const fechaDoc = data.fechaReparto;
+            if (!fechaDoc) return false; // Si hay filtro de fecha y el registro no tiene fecha, se oculta
+
             if (this.currentFilters.fechaInicio && fechaDoc < this.currentFilters.fechaInicio) {
                 return false;
             }
