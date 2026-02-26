@@ -302,7 +302,7 @@ window.switchModule = function (moduleName) {
             if (selectJ) selectJ.setAttribute('required', 'true');
         }
         // Hide non-essential fields for Radicador
-        const groupsToHide = ['group-fechaFallo', 'group-diaSiete', 'group-diaDiez', 'group-asignadoA', 'group-derecho', 'group-decision', 'group-genero', 'group-impugno'];
+        const groupsToHide = ['group-fechaFallo', 'group-notificacionFallo', 'group-fechaLimiteImpugnacion', 'group-diaSiete', 'group-diaDiez', 'group-asignadoA', 'group-derecho', 'group-decision', 'group-genero', 'group-impugno'];
         groupsToHide.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = 'none';
@@ -327,7 +327,7 @@ window.switchModule = function (moduleName) {
         if (pdfBanner) pdfBanner.style.display = 'none';
 
         // Show fields for other roles
-        const groupsToShow = ['group-fechaFallo', 'group-diaSiete', 'group-diaDiez', 'group-asignadoA', 'group-derecho', 'group-decision', 'group-genero', 'group-impugno'];
+        const groupsToShow = ['group-fechaFallo', 'group-notificacionFallo', 'group-fechaLimiteImpugnacion', 'group-diaSiete', 'group-diaDiez', 'group-asignadoA', 'group-derecho', 'group-decision', 'group-genero', 'group-impugno'];
         groupsToShow.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = 'block';
