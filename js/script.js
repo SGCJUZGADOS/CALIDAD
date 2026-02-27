@@ -780,17 +780,24 @@ function initUI() {
     // Smooth scrolling for navigation links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
+            const href = this.getAttribute('href');
+            if (!href || href === "#") return; // Skip invalid selectors
+
             e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth'
-                });
-                // Close mobile menu if open
-                const navLinks = document.querySelector('.nav-links');
-                if (navLinks.classList.contains('active')) {
-                    navLinks.classList.remove('active');
+            try {
+                const target = document.querySelector(href);
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                    // Close mobile menu if open
+                    const navLinks = document.querySelector('.nav-links');
+                    if (navLinks && navLinks.classList.contains('active')) {
+                        navLinks.classList.remove('active');
+                    }
                 }
+            } catch (err) {
+                console.warn("Invalid selector anchor:", href);
             }
         });
     });
@@ -932,32 +939,35 @@ window.handleLogin = function (e) {
     const loginModal = document.getElementById("loginModal");
     const dashboard = document.getElementById("dashboard");
 
-    // Helper for dummy email
-    const getEmail = (username) => {
-        if (username.includes('@')) return username;
-        return `${username}@sgc-envigado.local`;
+    // Helper for dummy email (Handles both username and email input)
+    const getEmail = (input) => {
+        if (input.includes('@')) return input;
+        return `${input}@sgc-envigado.local`;
     };
 
-    const email = getEmail(user);
+    // Helper to get raw username for Firestore ID (Strips domain if provided)
+    const getUsername = (input) => {
+        if (input.includes('@')) return input.split('@')[0];
+        return input;
+    };
 
-    console.log("Intentando login para:", email);
+    const usernameId = getUsername(user);
+    const email = getEmail(user);
 
     // 1. FIREBASE AUTH LOGIN
     auth.signInWithEmailAndPassword(email, pass)
         .then((userCredential) => {
             // SUCCESS - Observer will handle dashboard entry
-            console.log("Login exitoso con Auth");
             failedAttempts = 0; // Reset counter
             alert(`Bienvenido accessando como ${user}`);
             document.getElementById("loginForm").reset();
         })
         .catch((error) => {
             failedAttempts++;
-            console.warn("Auth Login failed, checking Firestore fallback for migration...", error.code);
             if (failedAttempts >= 5) startLockout();
 
             // 2. FALLBACK: Migration logic (if user exists in Firestore but not in Auth)
-            db.collection("users").doc(user).get().then((doc) => {
+            db.collection("users").doc(usernameId).get().then((doc) => {
                 if (doc.exists) {
                     const userData = doc.data();
                     if (userData.password === pass) {

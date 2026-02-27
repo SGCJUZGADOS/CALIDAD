@@ -147,10 +147,15 @@ window.renderUserList = function () {
             const roleLabel = (user.role === 'admin') ? '<span class="badge badge-primary">Admin</span>' :
                 (user.role.startsWith('radicador') ? '<span class="badge badge-info" style="background:#17a2b8">Radicador</span>' : 'Juzgado');
 
+            const statusLabel = user.password
+                ? '<span class="badge" style="background:#dc3545; color:white;">🔴 Pendiente</span>'
+                : '<span class="badge" style="background:#28a745; color:white;">🟢 Seguro</span>';
+
             tbody.innerHTML += `
             <tr>
                 <td style="font-weight:bold; color:#1e293b;">${user.username}</td>
                 <td>${roleLabel}</td>
+                <td>${statusLabel}</td>
                 <td style="color:#475569;">${user.juzgado || '---'}</td>
                 <td style="color:#475569; font-size: 0.85rem;">${user.email || '<i style="color:#999">Sin correo</i>'}</td>
                 <td>${vacanciaLabel}</td>
