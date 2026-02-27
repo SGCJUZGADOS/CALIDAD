@@ -1561,14 +1561,17 @@ window.resetForm = function () {
     const form = document.getElementById('terminosForm');
     if (form) form.reset();
 
-    // RESTORE FECHA REPARTO FOR RADICADOR
-    if (typeof currentUser !== 'undefined' && currentUser.role && currentUser.role.startsWith('radicador')) {
-        const today = new Date().toISOString().split('T')[0];
-        const fReparto = document.getElementById('fechaReparto');
-        if (fReparto) {
+    // RESTORE FECHA REPARTO (Unlocked temporarily for testing ALERT system)
+    let fReparto = document.getElementById('fechaReparto');
+    if (fReparto) {
+        fReparto.readOnly = false;
+        fReparto.style.backgroundColor = ""; // Reset to default
+
+        if (typeof currentUser !== 'undefined' && currentUser.role && currentUser.role.startsWith('radicador')) {
+            const today = new Date().toISOString().split('T')[0];
             fReparto.value = today;
-            fReparto.setAttribute('readonly', 'true');
-            fReparto.style.backgroundColor = "#e9ecef";
+            // fReparto.setAttribute('readonly', 'true'); // DISABLED FOR TESTING
+            // fReparto.style.backgroundColor = "#e9ecef"; // DISABLED FOR TESTING
         }
     }
 
@@ -1605,7 +1608,7 @@ window.resetForm = function () {
     if (elNot) elNot.value = "";
 
     // Trigger change to refresh calculations if necessary
-    const fReparto = document.getElementById('fechaReparto');
+    fReparto = document.getElementById('fechaReparto');
     if (fReparto) fReparto.dispatchEvent(new Event('change'));
 }
 
