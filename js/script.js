@@ -365,11 +365,12 @@ let myChart = null;
 window.updateStatistics = function () {
     const fechaInicio = document.getElementById('statFilterFechaInicio').value;
     const fechaFin = document.getElementById('statFilterFechaFin').value;
-    const juzgadoFilter = document.getElementById('statFilterJuzgado').value;
-    const isFiltered = fechaInicio || fechaFin || juzgadoFilter;
-
     // POPULATE SELECT IF EMPTY
     const statSelect = document.getElementById('statFilterJuzgado');
+    const role = (currentUser.role || '').toLowerCase();
+    const isAdmin = role === 'admin' || role.startsWith('radicador');
+    const userJuzgado = (currentUser.juzgado || "").trim();
+
     if (statSelect && statSelect.options.length <= 1 && typeof initialJuzgadosData !== 'undefined') {
         initialJuzgadosData.forEach(j => {
             const opt = document.createElement('option');
@@ -378,6 +379,21 @@ window.updateStatistics = function () {
             statSelect.appendChild(opt);
         });
     }
+
+    // AUTO-APPLY JUZGADO FILTER FOR NON-ADMINS
+    if (!isAdmin && userJuzgado && statSelect) {
+        if (statSelect.value !== userJuzgado) {
+            statSelect.value = userJuzgado;
+            // Optionally disable to prevent browsing others
+            statSelect.disabled = true;
+            // Recalculate with the new value
+            window.updateStatistics();
+            return;
+        }
+    }
+
+    const juzgadoFilter = statSelect ? statSelect.value : "";
+    const isFiltered = fechaInicio || fechaFin || juzgadoFilter || !isAdmin;
 
     const showTutelas = document.getElementById('checkShowTutelas').checked;
     const showDemandas = document.getElementById('checkShowDemandas').checked;
@@ -1494,9 +1510,10 @@ window.handleFormSubmit = function (e) {
                 const idToUpdate = currentEditId;
                 const docRef = db.collection(currentCollection).doc(idToUpdate);
 
+                let oldData = null;
                 docRef.get().then(snap => {
                     if (snap.exists) {
-                        const oldData = snap.data();
+                        oldData = snap.data();
                         db.collection("audit_logs").add({
                             entityId: idToUpdate,
                             entityCollection: currentCollection,
@@ -1507,10 +1524,9 @@ window.handleFormSubmit = function (e) {
                             action: 'UPDATE'
                         }).catch(e => console.log("Audit Log (info):", e));
                     }
-                    return docRef.update(entryData).then(() => {
-                        window.syncCounts(oldData, entryData, currentCollection);
-                    });
+                    return docRef.update(entryData);
                 }).then(() => {
+                    window.syncCounts(oldData, entryData, currentCollection);
                     console.log("✨ Actualización exitosa en Firebase.");
                     alert("✅ Registro actualizado correctamente.");
                     resetForm();
@@ -1680,10 +1696,12 @@ window.updateMatrixStatistics = function () {
         }
         const stats = doc.data();
 
-        // Si NO hay filtros, usar los contadores globales
+        // Si NO hay filtros Y es Admin/Radicador, usar contadores globales
+        const role = (currentUser.role || '').toLowerCase();
+        const isAdmin = role === 'admin' || role.startsWith('radicador');
         const isFiltered = entradaDesde || entradaHasta || salidaDesde || salidaHasta;
 
-        if (!isFiltered) {
+        if (!isFiltered && isAdmin) {
             console.log("📊 Cargando matriz desde contadores globales...");
             // Entrada
             for (const [key, count] of Object.entries(stats.matrix_entrada || {})) {
